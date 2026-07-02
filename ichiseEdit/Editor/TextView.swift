@@ -7,6 +7,7 @@ import UIKit
 struct TextView: UIViewRepresentable {
     @Binding var text: String
     var fontSize: Double
+    var isMarkdown: Bool = false
     var proxy: TextViewProxy?
 
     func makeUIView(context: Context) -> UITextView {
@@ -24,32 +25,119 @@ struct TextView: UIViewRepresentable {
         textView.text = text
         context.coordinator.observeKeyboard(for: textView)
         proxy?.textView = textView
+        context.coordinator.applyHighlightIfNeeded(to: textView)
         return textView
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
+        let fontChanged = textView.font?.pointSize != CGFloat(fontSize)
+        context.coordinator.parent = self
+
         // 入力のたびに再設定するとカーソル位置が失われるため、差分がある時のみ反映する
         if textView.text != text {
             textView.text = text
+            context.coordinator.applyHighlightIfNeeded(to: textView)
         }
-        if textView.font?.pointSize != CGFloat(fontSize) {
+        if fontChanged {
             textView.font = .systemFont(ofSize: fontSize)
+            context.coordinator.applyHighlightIfNeeded(to: textView)
         }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
+        Coordinator(parent: self)
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
-        private let text: Binding<String>
+        var parent: TextView
+        private var pendingHighlight: DispatchWorkItem?
 
-        init(text: Binding<String>) {
-            self.text = text
+        /// これを超える長さの文書ではハイライトを無効化する(入力性能を優先)
+        private static let highlightLengthLimit = 200_000
+
+        init(parent: TextView) {
+            self.parent = parent
         }
 
         func textViewDidChange(_ textView: UITextView) {
-            text.wrappedValue = textView.text ?? ""
+            parent.text = textView.text ?? ""
+            scheduleHighlight(for: textView)
+        }
+
+        // MARK: - リスト・引用の自動継続
+
+        func textView(
+            _ textView: UITextView,
+            shouldChangeTextIn range: NSRange,
+            replacementText replacement: String
+        ) -> Bool {
+            guard parent.isMarkdown, replacement == "\n", range.length == 0 else { return true }
+
+            let ns = (textView.text ?? "") as NSString
+            var lineStart = 0
+            var lineEnd = 0
+            var contentsEnd = 0
+            ns.getLineStart(
+                &lineStart,
+                end: &lineEnd,
+                contentsEnd: &contentsEnd,
+                for: NSRange(location: range.location, length: 0)
+            )
+            // 行末で改行した時だけ自動継続する(行の途中では通常の改行)
+            guard range.location == contentsEnd else { return true }
+
+            let line = ns.substring(with: NSRange(location: lineStart, length: contentsEnd - lineStart))
+            switch MarkdownListContinuation.action(forLine: line) {
+            case .none:
+                return true
+            case .continueList(let insert):
+                textView.insertText(insert)
+                return false
+            case .terminateList(let markerLength):
+                if let start = textView.position(from: textView.beginningOfDocument, offset: lineStart),
+                   let end = textView.position(from: start, offset: markerLength),
+                   let markerRange = textView.textRange(from: start, to: end) {
+                    textView.replace(markerRange, withText: "")
+                }
+                return false
+            }
+        }
+
+        // MARK: - シンタックスハイライト
+
+        func applyHighlightIfNeeded(to textView: UITextView) {
+            guard parent.isMarkdown else { return }
+            highlight(textView)
+        }
+
+        private func scheduleHighlight(for textView: UITextView) {
+            guard parent.isMarkdown else { return }
+            pendingHighlight?.cancel()
+            let work = DispatchWorkItem { [weak self, weak textView] in
+                guard let self, let textView else { return }
+                self.highlight(textView)
+            }
+            pendingHighlight = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
+        }
+
+        private func highlight(_ textView: UITextView) {
+            // 日本語入力の変換中に属性を触ると変換が壊れるため、確定を待つ
+            guard textView.markedTextRange == nil else { return }
+            let text = textView.text ?? ""
+            guard text.utf16.count <= Self.highlightLengthLimit else { return }
+
+            let theme = MarkdownTheme(fontSize: CGFloat(parent.fontSize))
+            let tokens = MarkdownHighlighter.tokens(in: text)
+
+            let storage = textView.textStorage
+            storage.beginEditing()
+            storage.setAttributes(theme.baseAttributes, range: NSRange(location: 0, length: storage.length))
+            for token in tokens {
+                storage.addAttributes(theme.attributes(for: token.kind), range: token.range)
+            }
+            storage.endEditing()
+            textView.typingAttributes = theme.baseAttributes
         }
 
         // MARK: - キーボードによる編集領域の遮蔽対策

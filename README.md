@@ -25,6 +25,7 @@ ichiseEdit/
   App/                      # アプリエントリポイント(DocumentGroup)
   Document/                 # TextDocument(FileDocument, UTF-8)
   Editor/                   # EditorView / TextView(TextKit 2 ベースの UITextView ラッパー)
+  Markdown/                 # Markdownハイライト・プレビュー・リスト自動継続
   Resources/                # Assets.xcassets(AppIcon, AccentColor)
   Support/                  # Info.plist(XcodeGen が生成・管理)
 docs/
