@@ -9,7 +9,7 @@ extension UTType {
 /// プレーンテキスト(UTF-8 のみ)のドキュメント。
 /// 改行コードは変換せず、読み込んだ内容をそのまま保持する。
 struct TextDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.plainText, .markdownText] }
+    static var readableContentTypes: [UTType] { [.plainText, .markdownText, .sourceCode] }
 
     var text: String
 

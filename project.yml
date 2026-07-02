@@ -43,6 +43,11 @@ targets:
             LSHandlerRank: Alternate
             LSItemContentTypes:
               - net.daringfireball.markdown
+          - CFBundleTypeName: Source Code
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.source-code
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: net.daringfireball.markdown
             UTTypeDescription: Markdown Text

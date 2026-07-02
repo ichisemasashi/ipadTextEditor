@@ -7,14 +7,16 @@ struct EditorView: View {
 
     @StateObject private var proxy = TextViewProxy()
     @AppStorage("editor.fontSize") private var fontSize: Double = 17
+    @AppStorage("editor.indentUsesSpaces") private var indentUsesSpaces = true
+    @AppStorage("editor.indentWidth") private var indentWidth = 4
     @State private var statistics = TextStatistics()
     @State private var showPreview = false
 
     private static let fontSizeRange: ClosedRange<Double> = 10...40
     private static let defaultFontSize: Double = 17
 
-    private var isMarkdown: Bool {
-        ["md", "markdown"].contains(fileURL?.pathExtension.lowercased() ?? "")
+    private var mode: EditorMode {
+        EditorMode.mode(for: fileURL)
     }
 
     var body: some View {
@@ -22,10 +24,12 @@ struct EditorView: View {
             TextView(
                 text: $document.text,
                 fontSize: fontSize,
-                isMarkdown: isMarkdown,
+                mode: mode,
+                indentUsesSpaces: indentUsesSpaces,
+                indentWidth: indentWidth,
                 proxy: proxy
             )
-            if isMarkdown && showPreview {
+            if mode.isMarkdown && showPreview {
                 Divider()
                 MarkdownPreviewView(text: document.text)
             }
@@ -33,7 +37,7 @@ struct EditorView: View {
         .ignoresSafeArea(.keyboard)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                if isMarkdown {
+                if mode.isMarkdown {
                     Button {
                         showPreview.toggle()
                     } label: {
@@ -42,6 +46,10 @@ struct EditorView: View {
                     .keyboardShortcut("p", modifiers: [.command, .shift])
 
                     markdownMenu
+                }
+
+                if mode.codeLanguage != nil {
+                    indentMenu
                 }
 
                 Button {
@@ -61,10 +69,7 @@ struct EditorView: View {
                 fontSizeMenu
             }
             ToolbarItem(placement: .status) {
-                Text("\(statistics.characters) characters / \(statistics.lines) lines")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                statusText
             }
         }
         // 全文走査(1MBで約17ms)を毎キーストロークで行うと入力が遅延するため、
@@ -76,6 +81,32 @@ struct EditorView: View {
             statistics = await Task.detached(priority: .utility) {
                 TextStatistics(counting: text)
             }.value
+        }
+    }
+
+    private var statusText: some View {
+        var status = Text("\(statistics.characters) characters / \(statistics.lines) lines")
+        if let language = mode.codeLanguage {
+            status = status + Text(verbatim: " · \(language.name)")
+        }
+        return status
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+    }
+
+    private var indentMenu: some View {
+        Menu {
+            Toggle(isOn: $indentUsesSpaces) {
+                Label("Indent Using Spaces", systemImage: "arrow.right.to.line")
+            }
+            Picker("Tab Width", selection: $indentWidth) {
+                Text(verbatim: "2").tag(2)
+                Text(verbatim: "4").tag(4)
+                Text(verbatim: "8").tag(8)
+            }
+        } label: {
+            Label("Indent", systemImage: "increase.indent")
         }
     }
 
