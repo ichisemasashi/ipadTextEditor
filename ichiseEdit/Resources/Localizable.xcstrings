@@ -61,6 +61,26 @@
         }
       }
     },
+    "Indent" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インデント"
+          }
+        }
+      }
+    },
+    "Indent Using Spaces" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スペースでインデント"
+          }
+        }
+      }
+    },
     "Increase Text Size" : {
       "localizations" : {
         "ja" : {
@@ -127,6 +147,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "標準サイズに戻す"
+          }
+        }
+      }
+    },
+    "Tab Width" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブ幅"
           }
         }
       }
