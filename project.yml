@@ -39,6 +39,7 @@ targets:
             LSItemContentTypes:
               - public.plain-text
         LSSupportsOpeningDocumentsInPlace: true
+        UIFileSharingEnabled: true
         UISupportsDocumentBrowser: true
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
