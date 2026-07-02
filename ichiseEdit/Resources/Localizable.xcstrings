@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%lld selected" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択: %lld文字"
+          }
+        }
+      }
+    },
     "%lld characters / %lld lines" : {
       "localizations" : {
         "ja" : {
@@ -37,6 +47,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文字を小さく"
+          }
+        }
+      }
+    },
+    "Characters" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字数"
+          }
+        }
+      }
+    },
+    "Excluding Whitespace" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空白・改行を除く"
+          }
+        }
+      }
+    },
+    "Focus" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "集中モード"
           }
         }
       }
@@ -111,12 +151,42 @@
         }
       }
     },
+    "Lines" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行数"
+          }
+        }
+      }
+    },
+    "Manuscript Pages (400 chars)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原稿用紙換算(400字)"
+          }
+        }
+      }
+    },
     "Markdown" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Markdown"
+          }
+        }
+      }
+    },
+    "Paragraphs" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "段落数"
           }
         }
       }
@@ -151,12 +221,32 @@
         }
       }
     },
+    "Statistics" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "統計"
+          }
+        }
+      }
+    },
     "Tab Width" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "タブ幅"
+          }
+        }
+      }
+    },
+    "Words" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単語数"
           }
         }
       }

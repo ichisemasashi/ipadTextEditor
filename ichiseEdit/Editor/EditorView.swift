@@ -11,6 +11,9 @@ struct EditorView: View {
     @AppStorage("editor.indentWidth") private var indentWidth = 4
     @State private var statistics = TextStatistics()
     @State private var showPreview = false
+    @State private var focusMode = false
+    @State private var selectionCount = 0
+    @State private var showStatistics = false
 
     private static let fontSizeRange: ClosedRange<Double> = 10...40
     private static let defaultFontSize: Double = 17
@@ -27,6 +30,8 @@ struct EditorView: View {
                 mode: mode,
                 indentUsesSpaces: indentUsesSpaces,
                 indentWidth: indentWidth,
+                focusMode: focusMode,
+                selectionCount: $selectionCount,
                 proxy: proxy
             )
             if mode.isMarkdown && showPreview {
@@ -53,6 +58,13 @@ struct EditorView: View {
                 }
 
                 Button {
+                    focusMode.toggle()
+                } label: {
+                    Label("Focus", systemImage: focusMode ? "circle.circle.fill" : "circle.circle")
+                }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
+
+                Button {
                     proxy.presentFindNavigator(showingReplace: false)
                 } label: {
                     Label("Find", systemImage: "magnifyingglass")
@@ -69,7 +81,15 @@ struct EditorView: View {
                 fontSizeMenu
             }
             ToolbarItem(placement: .status) {
-                statusText
+                Button {
+                    showStatistics = true
+                } label: {
+                    statusText
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showStatistics) {
+                    StatisticsView(text: document.text)
+                }
             }
         }
         // 全文走査(1MBで約17ms)を毎キーストロークで行うと入力が遅延するため、
@@ -86,6 +106,9 @@ struct EditorView: View {
 
     private var statusText: some View {
         var status = Text("\(statistics.characters) characters / \(statistics.lines) lines")
+        if selectionCount > 0 {
+            status = status + Text(verbatim: " · ") + Text("\(selectionCount) selected")
+        }
         if let language = mode.codeLanguage {
             status = status + Text(verbatim: " · \(language.name)")
         }
