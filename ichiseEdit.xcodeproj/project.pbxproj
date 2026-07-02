@@ -7,25 +7,42 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		096EE2F885A6915165EC2764 /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */; };
 		0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */; };
 		705CF07637B24805B3A86CEF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */; };
 		80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19913D879598E9EC5E37292 /* IchiseEditApp.swift */; };
+		862605AA9DD91756C0B15652 /* TextStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */; };
+		D31818226ADE3F4AE9ABF3F4 /* TextStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A38B1D72643512FA6F621D /* TextStatistics.swift */; };
 		EC6EFCE64F3F9CE934994925 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 302B16160A53975C365A015B /* Localizable.xcstrings */; };
 		F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC688ABE66BC1A26AB4DA86 /* TextView.swift */; };
 		F7F7C961645ACA5E17A85E43 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC847DA9CCA61A5B31ECAD21 /* Assets.xcassets */; };
 		FA68804F7F5F1B0ADDCBEB42 /* TextDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3F68CA1D308780230511CF /* TextDocument.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		74F5E4BB60306EACD8C646E1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 49347C2D81F7E1A1DC0E090F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C01FAE8FF8A67BE97BE2B56;
+			remoteInfo = ichiseEdit;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		302B16160A53975C365A015B /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		8025901E07734B59816C7E63 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A19913D879598E9EC5E37292 /* IchiseEditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IchiseEditApp.swift; sourceTree = "<group>"; };
+		B5A38B1D72643512FA6F621D /* TextStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStatistics.swift; sourceTree = "<group>"; };
 		CB3F68CA1D308780230511CF /* TextDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocument.swift; sourceTree = "<group>"; };
 		D095D63881A0ECFBC1452DE8 /* ichiseEdit.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ichiseEdit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0ED48A8827F2C9C09A3F2BF /* ichiseEditTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ichiseEditTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		DC847DA9CCA61A5B31ECAD21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewProxy.swift; sourceTree = "<group>"; };
 		DDC688ABE66BC1A26AB4DA86 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
+		F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStatisticsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -35,6 +52,15 @@
 				A19913D879598E9EC5E37292 /* IchiseEditApp.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		29B38D46AD494BEA2B12C2B5 /* ichiseEditTests */ = {
+			isa = PBXGroup;
+			children = (
+				5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */,
+				F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */,
+			);
+			path = ichiseEditTests;
 			sourceTree = "<group>";
 		};
 		3BEA391C20EA23E068FA8211 /* Support */ = {
@@ -78,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				D095D63881A0ECFBC1452DE8 /* ichiseEdit.app */,
+				D0ED48A8827F2C9C09A3F2BF /* ichiseEditTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -86,6 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				81CB5F2223CFB205DF76D471 /* ichiseEdit */,
+				29B38D46AD494BEA2B12C2B5 /* ichiseEditTests */,
 				C95D26C3EF39206CC49A904D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -94,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */,
+				B5A38B1D72643512FA6F621D /* TextStatistics.swift */,
 				DDC688ABE66BC1A26AB4DA86 /* TextView.swift */,
 				DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */,
 			);
@@ -120,6 +149,24 @@
 			productName = ichiseEdit;
 			productReference = D095D63881A0ECFBC1452DE8 /* ichiseEdit.app */;
 			productType = "com.apple.product-type.application";
+		};
+		EF3FB14167AFCD86E9DBB4C3 /* ichiseEditTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0BDEA3032275D49F5DB535F7 /* Build configuration list for PBXNativeTarget "ichiseEditTests" */;
+			buildPhases = (
+				5C3D18C2892430DFABA7275A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D7BA58507DC11070209E8F52 /* PBXTargetDependency */,
+			);
+			name = ichiseEditTests;
+			packageProductDependencies = (
+			);
+			productName = ichiseEditTests;
+			productReference = D0ED48A8827F2C9C09A3F2BF /* ichiseEditTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -152,6 +199,7 @@
 			projectRoot = "";
 			targets = (
 				5C01FAE8FF8A67BE97BE2B56 /* ichiseEdit */,
+				EF3FB14167AFCD86E9DBB4C3 /* ichiseEditTests */,
 			);
 		};
 /* End PBXProject section */
@@ -169,6 +217,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5C3D18C2892430DFABA7275A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				096EE2F885A6915165EC2764 /* PerformanceTests.swift in Sources */,
+				862605AA9DD91756C0B15652 /* TextStatisticsTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		855AC01E36F63D4779411DE4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -176,12 +233,21 @@
 				705CF07637B24805B3A86CEF /* EditorView.swift in Sources */,
 				80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */,
 				FA68804F7F5F1B0ADDCBEB42 /* TextDocument.swift in Sources */,
+				D31818226ADE3F4AE9ABF3F4 /* TextStatistics.swift in Sources */,
 				F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */,
 				0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D7BA58507DC11070209E8F52 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5C01FAE8FF8A67BE97BE2B56 /* ichiseEdit */;
+			targetProxy = 74F5E4BB60306EACD8C646E1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		03D1AA25234999B3BE07BDCA /* Debug */ = {
@@ -207,6 +273,22 @@
 				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
+		};
+		0EA542E0336DA585F6263AD2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ichise.ichiseEditTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ichiseEdit.app/ichiseEdit";
+			};
+			name = Release;
 		};
 		419A5E4DC19F5038D719CEAC /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -288,6 +370,22 @@
 			};
 			name = Release;
 		};
+		906598FAA418E241C51F346F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ichise.ichiseEditTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ichiseEdit.app/ichiseEdit";
+			};
+			name = Debug;
+		};
 		C06478899BB267A37D1AA761 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -354,6 +452,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0BDEA3032275D49F5DB535F7 /* Build configuration list for PBXNativeTarget "ichiseEditTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				906598FAA418E241C51F346F /* Debug */,
+				0EA542E0336DA585F6263AD2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		BC69C0A9D639EA59E3DD1066 /* Build configuration list for PBXProject "ichiseEdit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -6,6 +6,7 @@ struct EditorView: View {
 
     @StateObject private var proxy = TextViewProxy()
     @AppStorage("editor.fontSize") private var fontSize: Double = 17
+    @State private var statistics = TextStatistics()
 
     private static let fontSizeRange: ClosedRange<Double> = 10...40
     private static let defaultFontSize: Double = 17
@@ -32,19 +33,22 @@ struct EditorView: View {
                     fontSizeMenu
                 }
                 ToolbarItem(placement: .status) {
-                    Text("\(document.text.count) characters / \(lineCount) lines")
+                    Text("\(statistics.characters) characters / \(statistics.lines) lines")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
             }
-    }
-
-    private var lineCount: Int {
-        if document.text.isEmpty { return 1 }
-        return document.text.reduce(into: 1) { count, character in
-            if character == "\n" { count += 1 }
-        }
+            // 全文走査(1MBで約17ms)を毎キーストロークで行うと入力が遅延するため、
+            // 入力が止まってからバックグラウンドで再計算する
+            .task(id: document.text) {
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                guard !Task.isCancelled else { return }
+                let text = document.text
+                statistics = await Task.detached(priority: .utility) {
+                    TextStatistics(counting: text)
+                }.value
+            }
     }
 
     private var fontSizeMenu: some View {

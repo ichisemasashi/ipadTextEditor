@@ -17,6 +17,9 @@ targets:
     platform: iOS
     sources:
       - ichiseEdit
+    scheme:
+      testTargets:
+        - ichiseEditTests
     info:
       path: ichiseEdit/Support/Info.plist
       properties:
@@ -52,3 +55,11 @@ targets:
         ENABLE_PREVIEWS: true
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: "1.0"
+
+  ichiseEditTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - ichiseEditTests
+    dependencies:
+      - target: ichiseEdit
