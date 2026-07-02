@@ -59,6 +59,86 @@ targets:
                 - markdown
               public.mime-type:
                 - text/markdown
+          # iOS が UTI を知らない拡張子を public.source-code として扱えるようにする
+          - UTTypeIdentifier: com.ichise.ichiseedit.common-lisp-source
+            UTTypeDescription: Common Lisp Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - lisp
+                - cl
+                - asd
+          - UTTypeIdentifier: com.ichise.ichiseedit.islisp-source
+            UTTypeDescription: ISLISP Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - lsp
+          - UTTypeIdentifier: com.ichise.ichiseedit.scheme-source
+            UTTypeDescription: Scheme Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - scm
+                - ss
+                - sld
+                - rkt
+          - UTTypeIdentifier: com.ichise.ichiseedit.clojure-source
+            UTTypeDescription: Clojure Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - clj
+                - cljs
+                - cljc
+                - edn
+          - UTTypeIdentifier: com.ichise.ichiseedit.emacs-lisp-source
+            UTTypeDescription: Emacs Lisp Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - el
+          - UTTypeIdentifier: com.ichise.ichiseedit.haskell-source
+            UTTypeDescription: Haskell Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - hs
+          - UTTypeIdentifier: com.ichise.ichiseedit.typescript-source
+            UTTypeDescription: TypeScript Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - tsx
+          - UTTypeIdentifier: com.ichise.ichiseedit.go-source
+            UTTypeDescription: Go Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - go
+          - UTTypeIdentifier: com.ichise.ichiseedit.rust-source
+            UTTypeDescription: Rust Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - rs
+          - UTTypeIdentifier: com.ichise.ichiseedit.kotlin-source
+            UTTypeDescription: Kotlin Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - kt
+                - kts
         LSSupportsOpeningDocumentsInPlace: true
         UIFileSharingEnabled: true
         UISupportsDocumentBrowser: true

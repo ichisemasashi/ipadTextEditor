@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		06D8063E5E3B1AC437615CBF /* LispHaskellHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */; };
 		096EE2F885A6915165EC2764 /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */; };
 		0AFEB0FA451E14E8A1A778FC /* CodeAutoIndent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB1A4E7E81DEC68E842415E /* CodeAutoIndent.swift */; };
 		0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */; };
@@ -51,6 +52,7 @@
 		460DB1D3D22AA0DC54CB6DEA /* EditorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMode.swift; sourceTree = "<group>"; };
 		5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		5AB1A4E7E81DEC68E842415E /* CodeAutoIndent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeAutoIndent.swift; sourceTree = "<group>"; };
+		73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispHaskellHighlighterTests.swift; sourceTree = "<group>"; };
 		8025901E07734B59816C7E63 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		86A3A83692D5FEE6956FBA70 /* LineNumberGutterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberGutterView.swift; sourceTree = "<group>"; };
 		915560F624990F44169622FF /* CodeHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeHighlighter.swift; sourceTree = "<group>"; };
@@ -87,6 +89,7 @@
 			children = (
 				D144D6D259410C05A55846B8 /* CodeAutoIndentTests.swift */,
 				C367FC3ED9E5FD050687EDA4 /* CodeHighlighterTests.swift */,
+				73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */,
 				BF44F87E03101D8124597A1E /* MarkdownHighlighterTests.swift */,
 				05144775464E019983124BAB /* MarkdownListContinuationTests.swift */,
 				5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */,
@@ -281,6 +284,7 @@
 			files = (
 				446FB596CFE88019A7E0E6C9 /* CodeAutoIndentTests.swift in Sources */,
 				E2DD06BC15B76DF510A0E038 /* CodeHighlighterTests.swift in Sources */,
+				06D8063E5E3B1AC437615CBF /* LispHaskellHighlighterTests.swift in Sources */,
 				808682DD5EA1C4496966D24C /* MarkdownHighlighterTests.swift in Sources */,
 				717755413E60E6C0EC3FE68B /* MarkdownListContinuationTests.swift in Sources */,
 				096EE2F885A6915165EC2764 /* PerformanceTests.swift in Sources */,

@@ -13,6 +13,9 @@ struct LanguageDefinition: Equatable {
     let caseInsensitiveKeywords: Bool
     /// 行末が ":" のとき自動インデントを 1 段深くする(Python など)
     let indentsAfterColon: Bool
+    /// \w 以外にシンボル(識別子)を構成する文字。Lisp 系の "-!?*" や Haskell の "'" など。
+    /// 空でなければキーワード判定の境界に \b の代わりにこの文字集合を使う
+    let extraSymbolCharacters: String
 
     init(
         name: String,
@@ -22,7 +25,8 @@ struct LanguageDefinition: Equatable {
         stringDelimiters: [Character] = ["\""],
         keywords: Set<String> = [],
         caseInsensitiveKeywords: Bool = false,
-        indentsAfterColon: Bool = false
+        indentsAfterColon: Bool = false,
+        extraSymbolCharacters: String = ""
     ) {
         self.name = name
         self.lineComment = lineComment
@@ -33,6 +37,7 @@ struct LanguageDefinition: Equatable {
         self.keywords = keywords
         self.caseInsensitiveKeywords = caseInsensitiveKeywords
         self.indentsAfterColon = indentsAfterColon
+        self.extraSymbolCharacters = extraSymbolCharacters
     }
 
     static func == (lhs: LanguageDefinition, rhs: LanguageDefinition) -> Bool {
@@ -245,6 +250,113 @@ enum LanguageRegistry {
         stringDelimiters: ["\""]
     )
 
+    /// Lisp 系共通: シンボルに使える追加文字(foo-bar, set!, null?, 1+ など)
+    private static let lispSymbolCharacters = "!?*+/<>=-"
+
+    private static let commonLisp = LanguageDefinition(
+        name: "Common Lisp",
+        lineComment: ";",
+        blockComment: ("#|", "|#"),
+        stringDelimiters: ["\""],
+        keywords: [
+            "defun", "defmacro", "defvar", "defparameter", "defconstant", "defclass",
+            "defmethod", "defgeneric", "defstruct", "defpackage", "in-package",
+            "lambda", "let", "let*", "flet", "labels", "if", "when", "unless", "cond",
+            "case", "loop", "do", "dolist", "dotimes", "progn", "prog1", "block",
+            "return", "return-from", "setf", "setq", "quote", "function", "funcall",
+            "apply", "mapcar", "format", "t", "nil", "and", "or", "not", "eq", "eql",
+            "equal", "cons", "car", "cdr", "list", "values", "multiple-value-bind",
+            "destructuring-bind", "declare", "the", "error", "handler-case",
+            "unwind-protect", "require", "provide",
+        ],
+        caseInsensitiveKeywords: true,
+        extraSymbolCharacters: lispSymbolCharacters
+    )
+
+    private static let scheme = LanguageDefinition(
+        name: "Scheme",
+        lineComment: ";",
+        blockComment: ("#|", "|#"),
+        stringDelimiters: ["\""],
+        keywords: [
+            "define", "define-syntax", "define-record-type", "define-values", "lambda",
+            "let", "let*", "letrec", "letrec*", "let-values", "let-syntax", "if",
+            "cond", "case", "when", "unless", "and", "or", "not", "else", "begin",
+            "do", "delay", "force", "quote", "quasiquote", "unquote", "set!", "car",
+            "cdr", "cons", "list", "null?", "pair?", "eq?", "eqv?", "equal?", "map",
+            "for-each", "apply", "call/cc", "call-with-current-continuation",
+            "display", "newline", "#t", "#f", "syntax-rules", "import", "export",
+        ],
+        extraSymbolCharacters: lispSymbolCharacters
+    )
+
+    private static let clojure = LanguageDefinition(
+        name: "Clojure",
+        lineComment: ";",
+        stringDelimiters: ["\""],
+        keywords: [
+            "def", "defn", "defn-", "defmacro", "defmulti", "defmethod", "defprotocol",
+            "defrecord", "deftype", "defonce", "fn", "let", "letfn", "if", "if-let",
+            "if-not", "when", "when-let", "when-not", "cond", "condp", "case", "loop",
+            "recur", "for", "doseq", "dotimes", "while", "do", "quote", "var", "ns",
+            "require", "import", "use", "try", "catch", "finally", "throw", "new",
+            "set!", "and", "or", "not", "nil", "true", "false", "map", "filter",
+            "reduce", "apply", "->", "->>", "comment", "declare", "binding", "atom",
+            "swap!", "reset!", "deref",
+        ],
+        extraSymbolCharacters: lispSymbolCharacters
+    )
+
+    private static let islisp = LanguageDefinition(
+        name: "ISLISP",
+        lineComment: ";",
+        blockComment: ("#|", "|#"),
+        stringDelimiters: ["\""],
+        keywords: [
+            "defun", "defmacro", "defglobal", "defconstant", "defclass", "defgeneric",
+            "defmethod", "lambda", "let", "let*", "if", "cond", "case", "case-using",
+            "when", "unless", "while", "for", "progn", "block", "return-from", "catch",
+            "throw", "tagbody", "go", "quote", "function", "funcall", "apply", "setq",
+            "setf", "and", "or", "not", "t", "nil", "eq", "eql", "equal", "car", "cdr",
+            "cons", "list", "mapcar", "format", "error", "signal-condition",
+            "unwind-protect", "with-handler", "class", "the", "assure", "dynamic",
+            "dynamic-let",
+        ],
+        caseInsensitiveKeywords: true,
+        extraSymbolCharacters: lispSymbolCharacters
+    )
+
+    private static let emacsLisp = LanguageDefinition(
+        name: "Emacs Lisp",
+        lineComment: ";",
+        stringDelimiters: ["\""],
+        keywords: [
+            "defun", "defmacro", "defvar", "defconst", "defcustom", "defgroup",
+            "defface", "defalias", "lambda", "let", "let*", "if", "when", "unless",
+            "cond", "pcase", "while", "dolist", "dotimes", "progn", "prog1", "prog2",
+            "save-excursion", "save-restriction", "with-current-buffer", "interactive",
+            "setq", "setq-default", "setf", "quote", "function", "funcall", "apply",
+            "mapcar", "mapc", "require", "provide", "t", "nil", "and", "or", "not",
+            "eq", "equal", "car", "cdr", "cons", "list", "message", "error",
+            "condition-case", "unwind-protect", "add-hook", "autoload",
+        ],
+        extraSymbolCharacters: lispSymbolCharacters
+    )
+
+    private static let haskell = LanguageDefinition(
+        name: "Haskell",
+        lineComment: "--",
+        blockComment: ("{-", "-}"),
+        stringDelimiters: ["\""],
+        keywords: [
+            "module", "import", "data", "type", "newtype", "class", "instance",
+            "deriving", "where", "let", "in", "do", "case", "of", "if", "then",
+            "else", "infix", "infixl", "infixr", "foreign", "default", "mdo",
+            "family", "forall", "qualified", "hiding", "as",
+        ],
+        extraSymbolCharacters: "'"
+    )
+
     private static let byExtension: [String: LanguageDefinition] = [
         "swift": swift,
         "py": python,
@@ -262,5 +374,11 @@ enum LanguageRegistry {
         "sql": sql,
         "css": css,
         "html": html, "htm": html, "xml": html, "svg": html,
+        "lisp": commonLisp, "cl": commonLisp, "asd": commonLisp,
+        "scm": scheme, "ss": scheme, "sld": scheme, "rkt": scheme,
+        "clj": clojure, "cljs": clojure, "cljc": clojure, "edn": clojure,
+        "lsp": islisp,
+        "el": emacsLisp,
+        "hs": haskell,
     ]
 }

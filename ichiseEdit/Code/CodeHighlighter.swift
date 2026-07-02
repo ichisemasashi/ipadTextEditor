@@ -138,8 +138,17 @@ enum CodeHighlighter {
             .sorted { $0.count > $1.count }
             .map { NSRegularExpression.escapedPattern(for: $0) }
             .joined(separator: "|")
+        // Lisp 系や Haskell はシンボルに \w 以外の文字を含む(set!, foo-bar, x' など)ため、
+        // \b の代わりにシンボル構成文字の否定先読み/後読みで境界を判定する
+        let pattern: String
+        if language.extraSymbolCharacters.isEmpty {
+            pattern = #"\b(?:"# + alternation + #")\b"#
+        } else {
+            let symbolClass = #"[\w"# + language.extraSymbolCharacters + "]"
+            pattern = "(?<!" + symbolClass + ")(?:" + alternation + ")(?!" + symbolClass + ")"
+        }
         let regex = try? NSRegularExpression(
-            pattern: #"\b(?:"# + alternation + #")\b"#,
+            pattern: pattern,
             options: language.caseInsensitiveKeywords ? [.caseInsensitive] : []
         )
         keywordRegexCache[language.name] = regex
