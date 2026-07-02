@@ -12,6 +12,7 @@
 		0AFEB0FA451E14E8A1A778FC /* CodeAutoIndent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB1A4E7E81DEC68E842415E /* CodeAutoIndent.swift */; };
 		0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */; };
 		0BDFE83C59A5CF49A519B47F /* CodeTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2CD297A2BEBCF124186484 /* CodeTheme.swift */; };
+		1A202195BDAB1DDBBF544C31 /* DetailedTextStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD08FCA1874CCC41CA2ED244 /* DetailedTextStatisticsTests.swift */; };
 		2E3084EDD2AF710477320018 /* MarkdownTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8700510BE0F4AEB9DCFBBC5 /* MarkdownTheme.swift */; };
 		394B42A81711504BB26A4E95 /* MarkdownPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACD2EF4D30F930095C8594B /* MarkdownPreviewView.swift */; };
 		446FB596CFE88019A7E0E6C9 /* CodeAutoIndentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D144D6D259410C05A55846B8 /* CodeAutoIndentTests.swift */; };
@@ -25,9 +26,11 @@
 		862605AA9DD91756C0B15652 /* TextStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */; };
 		9E574F4BE5B1592587DB223B /* CodeHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915560F624990F44169622FF /* CodeHighlighter.swift */; };
 		BC2F7E75D9F2DFEF0FE9F221 /* EditorMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460DB1D3D22AA0DC54CB6DEA /* EditorMode.swift */; };
+		C9AD0329CE5B6D26D647DD1F /* DetailedTextStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAAE51CE7F5E05E073C0F64 /* DetailedTextStatistics.swift */; };
 		D31818226ADE3F4AE9ABF3F4 /* TextStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A38B1D72643512FA6F621D /* TextStatistics.swift */; };
 		D3FD661B45FE4C1026A43773 /* MarkdownHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A689E3962A4A5D0E1622F8EC /* MarkdownHighlighter.swift */; };
 		E2DD06BC15B76DF510A0E038 /* CodeHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C367FC3ED9E5FD050687EDA4 /* CodeHighlighterTests.swift */; };
+		E3B2367C35024E16941C0E1E /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA184C3C42312511488E1DFB /* StatisticsView.swift */; };
 		EC6EFCE64F3F9CE934994925 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 302B16160A53975C365A015B /* Localizable.xcstrings */; };
 		F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC688ABE66BC1A26AB4DA86 /* TextView.swift */; };
 		F7F7C961645ACA5E17A85E43 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC847DA9CCA61A5B31ECAD21 /* Assets.xcassets */; };
@@ -50,6 +53,7 @@
 		2B2CD297A2BEBCF124186484 /* CodeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeTheme.swift; sourceTree = "<group>"; };
 		302B16160A53975C365A015B /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		460DB1D3D22AA0DC54CB6DEA /* EditorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMode.swift; sourceTree = "<group>"; };
+		4BAAE51CE7F5E05E073C0F64 /* DetailedTextStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedTextStatistics.swift; sourceTree = "<group>"; };
 		5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		5AB1A4E7E81DEC68E842415E /* CodeAutoIndent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeAutoIndent.swift; sourceTree = "<group>"; };
 		73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispHaskellHighlighterTests.swift; sourceTree = "<group>"; };
@@ -73,6 +77,8 @@
 		DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewProxy.swift; sourceTree = "<group>"; };
 		DDC688ABE66BC1A26AB4DA86 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
 		F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStatisticsTests.swift; sourceTree = "<group>"; };
+		FA184C3C42312511488E1DFB /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
+		FD08FCA1874CCC41CA2ED244 /* DetailedTextStatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedTextStatisticsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -89,6 +95,7 @@
 			children = (
 				D144D6D259410C05A55846B8 /* CodeAutoIndentTests.swift */,
 				C367FC3ED9E5FD050687EDA4 /* CodeHighlighterTests.swift */,
+				FD08FCA1874CCC41CA2ED244 /* DetailedTextStatisticsTests.swift */,
 				73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */,
 				BF44F87E03101D8124597A1E /* MarkdownHighlighterTests.swift */,
 				05144775464E019983124BAB /* MarkdownListContinuationTests.swift */,
@@ -180,9 +187,11 @@
 		F4B115F39C8D5DCD5540EA1A /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				4BAAE51CE7F5E05E073C0F64 /* DetailedTextStatistics.swift */,
 				460DB1D3D22AA0DC54CB6DEA /* EditorMode.swift */,
 				D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */,
 				86A3A83692D5FEE6956FBA70 /* LineNumberGutterView.swift */,
+				FA184C3C42312511488E1DFB /* StatisticsView.swift */,
 				B5A38B1D72643512FA6F621D /* TextStatistics.swift */,
 				DDC688ABE66BC1A26AB4DA86 /* TextView.swift */,
 				DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */,
@@ -284,6 +293,7 @@
 			files = (
 				446FB596CFE88019A7E0E6C9 /* CodeAutoIndentTests.swift in Sources */,
 				E2DD06BC15B76DF510A0E038 /* CodeHighlighterTests.swift in Sources */,
+				1A202195BDAB1DDBBF544C31 /* DetailedTextStatisticsTests.swift in Sources */,
 				06D8063E5E3B1AC437615CBF /* LispHaskellHighlighterTests.swift in Sources */,
 				808682DD5EA1C4496966D24C /* MarkdownHighlighterTests.swift in Sources */,
 				717755413E60E6C0EC3FE68B /* MarkdownListContinuationTests.swift in Sources */,
@@ -299,6 +309,7 @@
 				0AFEB0FA451E14E8A1A778FC /* CodeAutoIndent.swift in Sources */,
 				9E574F4BE5B1592587DB223B /* CodeHighlighter.swift in Sources */,
 				0BDFE83C59A5CF49A519B47F /* CodeTheme.swift in Sources */,
+				C9AD0329CE5B6D26D647DD1F /* DetailedTextStatistics.swift in Sources */,
 				BC2F7E75D9F2DFEF0FE9F221 /* EditorMode.swift in Sources */,
 				705CF07637B24805B3A86CEF /* EditorView.swift in Sources */,
 				80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */,
@@ -308,6 +319,7 @@
 				514C31469EA5301B53C9D7EA /* MarkdownListContinuation.swift in Sources */,
 				394B42A81711504BB26A4E95 /* MarkdownPreviewView.swift in Sources */,
 				2E3084EDD2AF710477320018 /* MarkdownTheme.swift in Sources */,
+				E3B2367C35024E16941C0E1E /* StatisticsView.swift in Sources */,
 				FA68804F7F5F1B0ADDCBEB42 /* TextDocument.swift in Sources */,
 				D31818226ADE3F4AE9ABF3F4 /* TextStatistics.swift in Sources */,
 				F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */,

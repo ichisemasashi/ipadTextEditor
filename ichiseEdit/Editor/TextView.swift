@@ -10,6 +10,8 @@ struct TextView: UIViewRepresentable {
     var mode: EditorMode = .plainText
     var indentUsesSpaces: Bool = true
     var indentWidth: Int = 4
+    var focusMode: Bool = false
+    var selectionCount: Binding<Int>?
     var proxy: TextViewProxy?
 
     private var baseFont: UIFont {
@@ -53,7 +55,12 @@ struct TextView: UIViewRepresentable {
 
     func updateUIView(_ textView: UITextView, context: Context) {
         let fontChanged = textView.font?.pointSize != CGFloat(fontSize)
+        let focusChanged = context.coordinator.parent.focusMode != focusMode
         context.coordinator.parent = self
+
+        if focusChanged {
+            context.coordinator.refreshHighlight(textView)
+        }
 
         // 入力のたびに再設定するとカーソル位置が失われるため、差分がある時のみ反映する
         if textView.text != text {
@@ -77,6 +84,7 @@ struct TextView: UIViewRepresentable {
         var parent: TextView
         var gutter: LineNumberGutterView?
         private var pendingHighlight: DispatchWorkItem?
+        private(set) var lastFocusParagraph: NSRange?
 
         /// これを超える長さの文書ではハイライトを無効化する(入力性能を優先)
         private static let highlightLengthLimit = 200_000
@@ -89,6 +97,32 @@ struct TextView: UIViewRepresentable {
             parent.text = textView.text ?? ""
             scheduleHighlight(for: textView)
             gutter?.rebuildLineStarts(text: textView.text ?? "")
+        }
+
+        func textViewDidChangeSelection(_ textView: UITextView) {
+            // 選択範囲の文字数(グラフェム単位)をステータスバーへ通知する
+            if let binding = parent.selectionCount {
+                let selection = textView.selectedRange
+                let count: Int
+                if selection.length == 0 {
+                    count = 0
+                } else {
+                    count = ((textView.text ?? "") as NSString)
+                        .substring(with: selection).count
+                }
+                if binding.wrappedValue != count {
+                    binding.wrappedValue = count
+                }
+            }
+            // 集中モード: カーソルの段落が変わったら減光範囲を更新する
+            if parent.focusMode, textView.markedTextRange == nil {
+                let ns = (textView.text ?? "") as NSString
+                let location = min(textView.selectedRange.location, ns.length)
+                let paragraph = ns.paragraphRange(for: NSRange(location: location, length: 0))
+                if paragraph != lastFocusParagraph {
+                    highlight(textView)
+                }
+            }
         }
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -186,12 +220,17 @@ struct TextView: UIViewRepresentable {
         // MARK: - シンタックスハイライト
 
         func applyHighlightIfNeeded(to textView: UITextView) {
-            guard parent.mode != .plainText else { return }
+            guard parent.mode != .plainText || parent.focusMode else { return }
+            highlight(textView)
+        }
+
+        /// 集中モードの切替時など、状態が変わった時に属性を丸ごと引き直す
+        func refreshHighlight(_ textView: UITextView) {
             highlight(textView)
         }
 
         private func scheduleHighlight(for textView: UITextView) {
-            guard parent.mode != .plainText else { return }
+            guard parent.mode != .plainText || parent.focusMode else { return }
             pendingHighlight?.cancel()
             let work = DispatchWorkItem { [weak self, weak textView] in
                 guard let self, let textView else { return }
@@ -212,7 +251,10 @@ struct TextView: UIViewRepresentable {
 
             switch parent.mode {
             case .plainText:
-                return
+                baseAttributes = [
+                    .font: UIFont.systemFont(ofSize: CGFloat(parent.fontSize)),
+                    .foregroundColor: UIColor.label,
+                ]
             case .markdown:
                 let theme = MarkdownTheme(fontSize: CGFloat(parent.fontSize))
                 baseAttributes = theme.baseAttributes
@@ -232,6 +274,31 @@ struct TextView: UIViewRepresentable {
             storage.setAttributes(baseAttributes, range: NSRange(location: 0, length: storage.length))
             for (range, attributes) in tokenAttributes {
                 storage.addAttributes(attributes, range: range)
+            }
+            // 集中モード: カーソルのある段落以外を減光する
+            if parent.focusMode {
+                let ns = text as NSString
+                let location = min(textView.selectedRange.location, ns.length)
+                let paragraph = ns.paragraphRange(for: NSRange(location: location, length: 0))
+                lastFocusParagraph = paragraph
+                let dimColor = UIColor.tertiaryLabel
+                if paragraph.location > 0 {
+                    storage.addAttribute(
+                        .foregroundColor,
+                        value: dimColor,
+                        range: NSRange(location: 0, length: paragraph.location)
+                    )
+                }
+                let paragraphEnd = NSMaxRange(paragraph)
+                if paragraphEnd < storage.length {
+                    storage.addAttribute(
+                        .foregroundColor,
+                        value: dimColor,
+                        range: NSRange(location: paragraphEnd, length: storage.length - paragraphEnd)
+                    )
+                }
+            } else {
+                lastFocusParagraph = nil
             }
             storage.endEditing()
             textView.typingAttributes = baseAttributes
