@@ -4,7 +4,7 @@ import SwiftUI
 struct IchiseEditApp: App {
     var body: some Scene {
         DocumentGroup(newDocument: TextDocument()) { configuration in
-            EditorView(document: configuration.$document)
+            EditorView(document: configuration.$document, fileURL: configuration.fileURL)
         }
     }
 }

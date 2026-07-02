@@ -1,10 +1,15 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+extension UTType {
+    /// Markdown(Info.plist の UTImportedTypeDeclarations で宣言)
+    static let markdownText = UTType(importedAs: "net.daringfireball.markdown", conformingTo: .plainText)
+}
+
 /// プレーンテキスト(UTF-8 のみ)のドキュメント。
 /// 改行コードは変換せず、読み込んだ内容をそのまま保持する。
 struct TextDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.plainText] }
+    static var readableContentTypes: [UTType] { [.plainText, .markdownText] }
 
     var text: String
 
