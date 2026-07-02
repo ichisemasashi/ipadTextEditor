@@ -10,12 +10,14 @@
 		0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */; };
 		705CF07637B24805B3A86CEF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */; };
 		80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19913D879598E9EC5E37292 /* IchiseEditApp.swift */; };
+		EC6EFCE64F3F9CE934994925 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 302B16160A53975C365A015B /* Localizable.xcstrings */; };
 		F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC688ABE66BC1A26AB4DA86 /* TextView.swift */; };
 		F7F7C961645ACA5E17A85E43 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC847DA9CCA61A5B31ECAD21 /* Assets.xcassets */; };
 		FA68804F7F5F1B0ADDCBEB42 /* TextDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3F68CA1D308780230511CF /* TextDocument.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		302B16160A53975C365A015B /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		8025901E07734B59816C7E63 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A19913D879598E9EC5E37292 /* IchiseEditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IchiseEditApp.swift; sourceTree = "<group>"; };
 		CB3F68CA1D308780230511CF /* TextDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocument.swift; sourceTree = "<group>"; };
@@ -67,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				DC847DA9CCA61A5B31ECAD21 /* Assets.xcassets */,
+				302B16160A53975C365A015B /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -139,6 +142,7 @@
 			knownRegions = (
 				Base,
 				en,
+				ja,
 			);
 			mainGroup = E8DA1BD966A3F978D549B326;
 			minimizedProjectReferenceProxies = 1;
@@ -158,6 +162,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F7F7C961645ACA5E17A85E43 /* Assets.xcassets in Resources */,
+				EC6EFCE64F3F9CE934994925 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
