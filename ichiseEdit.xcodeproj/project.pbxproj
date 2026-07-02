@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */; };
 		705CF07637B24805B3A86CEF /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */; };
 		80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19913D879598E9EC5E37292 /* IchiseEditApp.swift */; };
 		F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC688ABE66BC1A26AB4DA86 /* TextView.swift */; };
@@ -21,6 +22,7 @@
 		D095D63881A0ECFBC1452DE8 /* ichiseEdit.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ichiseEdit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		DC847DA9CCA61A5B31ECAD21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewProxy.swift; sourceTree = "<group>"; };
 		DDC688ABE66BC1A26AB4DA86 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -90,6 +92,7 @@
 			children = (
 				D2A6F4BDC6149BDD3D83FAC6 /* EditorView.swift */,
 				DDC688ABE66BC1A26AB4DA86 /* TextView.swift */,
+				DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -169,6 +172,7 @@
 				80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */,
 				FA68804F7F5F1B0ADDCBEB42 /* TextDocument.swift in Sources */,
 				F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */,
+				0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

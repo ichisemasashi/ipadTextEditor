@@ -6,12 +6,14 @@ import UIKit
 /// レイアウト操作は必ず `textLayoutManager` 経由で行うこと。
 struct TextView: UIViewRepresentable {
     @Binding var text: String
+    var fontSize: Double
+    var proxy: TextViewProxy?
 
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView(usingTextLayoutManager: true)
         textView.delegate = context.coordinator
-        textView.font = .preferredFont(forTextStyle: .body)
-        textView.adjustsFontForContentSizeCategory = true
+        textView.font = .systemFont(ofSize: fontSize)
+        textView.isFindInteractionEnabled = true
         textView.alwaysBounceVertical = true
         textView.keyboardDismissMode = .interactive
         textView.smartQuotesType = .no
@@ -21,6 +23,7 @@ struct TextView: UIViewRepresentable {
         textView.textContainerInset = UIEdgeInsets(top: 16, left: 12, bottom: 16, right: 12)
         textView.text = text
         context.coordinator.observeKeyboard(for: textView)
+        proxy?.textView = textView
         return textView
     }
 
@@ -28,6 +31,9 @@ struct TextView: UIViewRepresentable {
         // 入力のたびに再設定するとカーソル位置が失われるため、差分がある時のみ反映する
         if textView.text != text {
             textView.text = text
+        }
+        if textView.font?.pointSize != CGFloat(fontSize) {
+            textView.font = .systemFont(ofSize: fontSize)
         }
     }
 
