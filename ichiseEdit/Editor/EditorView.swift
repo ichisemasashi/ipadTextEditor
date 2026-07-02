@@ -18,21 +18,21 @@ struct EditorView: View {
                     Button {
                         proxy.presentFindNavigator(showingReplace: false)
                     } label: {
-                        Label("検索", systemImage: "magnifyingglass")
+                        Label("Find", systemImage: "magnifyingglass")
                     }
                     .keyboardShortcut("f", modifiers: .command)
 
                     Button {
                         proxy.presentFindNavigator(showingReplace: true)
                     } label: {
-                        Label("置換", systemImage: "arrow.2.squarepath")
+                        Label("Replace", systemImage: "arrow.2.squarepath")
                     }
                     .keyboardShortcut("f", modifiers: [.command, .option])
 
                     fontSizeMenu
                 }
                 ToolbarItem(placement: .status) {
-                    Text("\(document.text.count) 文字 / \(lineCount) 行")
+                    Text("\(document.text.count) characters / \(lineCount) lines")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
@@ -52,23 +52,23 @@ struct EditorView: View {
             Button {
                 fontSize = min(fontSize + 1, Self.fontSizeRange.upperBound)
             } label: {
-                Label("文字を大きく", systemImage: "textformat.size.larger")
+                Label("Increase Text Size", systemImage: "textformat.size.larger")
             }
             .keyboardShortcut("+", modifiers: .command)
 
             Button {
                 fontSize = max(fontSize - 1, Self.fontSizeRange.lowerBound)
             } label: {
-                Label("文字を小さく", systemImage: "textformat.size.smaller")
+                Label("Decrease Text Size", systemImage: "textformat.size.smaller")
             }
             .keyboardShortcut("-", modifiers: .command)
 
-            Button("標準サイズに戻す") {
+            Button("Reset Text Size") {
                 fontSize = Self.defaultFontSize
             }
             .keyboardShortcut("0", modifiers: .command)
         } label: {
-            Label("文字サイズ", systemImage: "textformat.size")
+            Label("Text Size", systemImage: "textformat.size")
         }
     }
 }
