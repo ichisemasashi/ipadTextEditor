@@ -110,6 +110,16 @@ targets:
             UTTypeTagSpecification:
               public.filename-extension:
                 - hs
+          - UTTypeIdentifier: com.ichise.ichiseedit.latex-source
+            UTTypeDescription: LaTeX Source
+            UTTypeConformsTo:
+              - public.source-code
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - tex
+                - sty
+                - cls
+                - ltx
           - UTTypeIdentifier: com.ichise.ichiseedit.typescript-source
             UTTypeDescription: TypeScript Source
             UTTypeConformsTo:

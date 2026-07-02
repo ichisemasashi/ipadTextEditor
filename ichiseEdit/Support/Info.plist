@@ -219,6 +219,26 @@
 				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
+			<string>LaTeX Source</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.ichise.ichiseedit.latex-source</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tex</string>
+					<string>sty</string>
+					<string>cls</string>
+					<string>ltx</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
 			<string>TypeScript Source</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.ichise.ichiseedit.typescript-source</string>

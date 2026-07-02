@@ -16,6 +16,14 @@ struct LanguageDefinition: Equatable {
     /// \w 以外にシンボル(識別子)を構成する文字。Lisp 系の "-!?*" や Haskell の "'" など。
     /// 空でなければキーワード判定の境界に \b の代わりにこの文字集合を使う
     let extraSymbolCharacters: String
+    /// keywords の代わりに使うキーワード判定の正規表現(LaTeX の \command など、
+    /// 固定集合で列挙できない言語向け)
+    let keywordPattern: String?
+    /// 数値をハイライトするか(散文主体の LaTeX などでは false)
+    let highlightsNumbers: Bool
+    /// コメント・文字列の外でバックスラッシュを次の 1 文字のエスケープとして扱う
+    /// (LaTeX の \% がコメント開始にならないようにする)
+    let backslashEscapes: Bool
 
     init(
         name: String,
@@ -26,7 +34,10 @@ struct LanguageDefinition: Equatable {
         keywords: Set<String> = [],
         caseInsensitiveKeywords: Bool = false,
         indentsAfterColon: Bool = false,
-        extraSymbolCharacters: String = ""
+        extraSymbolCharacters: String = "",
+        keywordPattern: String? = nil,
+        highlightsNumbers: Bool = true,
+        backslashEscapes: Bool = false
     ) {
         self.name = name
         self.lineComment = lineComment
@@ -38,6 +49,9 @@ struct LanguageDefinition: Equatable {
         self.caseInsensitiveKeywords = caseInsensitiveKeywords
         self.indentsAfterColon = indentsAfterColon
         self.extraSymbolCharacters = extraSymbolCharacters
+        self.keywordPattern = keywordPattern
+        self.highlightsNumbers = highlightsNumbers
+        self.backslashEscapes = backslashEscapes
     }
 
     static func == (lhs: LanguageDefinition, rhs: LanguageDefinition) -> Bool {
@@ -343,6 +357,15 @@ enum LanguageRegistry {
         extraSymbolCharacters: lispSymbolCharacters
     )
 
+    private static let latex = LanguageDefinition(
+        name: "LaTeX",
+        lineComment: "%",
+        stringDelimiters: ["$"],  // インライン数式 $...$ を文字列として着色する
+        keywordPattern: #"\\(?:[a-zA-Z@]+\*?|[^a-zA-Z\s])"#,
+        highlightsNumbers: false,
+        backslashEscapes: true
+    )
+
     private static let haskell = LanguageDefinition(
         name: "Haskell",
         lineComment: "--",
@@ -380,5 +403,6 @@ enum LanguageRegistry {
         "lsp": islisp,
         "el": emacsLisp,
         "hs": haskell,
+        "tex": latex, "sty": latex, "cls": latex, "ltx": latex,
     ]
 }
