@@ -125,6 +125,7 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					5C01FAE8FF8A67BE97BE2B56 = {
+						DevelopmentTeam = DGGN7U8332;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -182,6 +183,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DGGN7U8332;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = ichiseEdit/Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -205,6 +207,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DGGN7U8332;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = ichiseEdit/Support/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
