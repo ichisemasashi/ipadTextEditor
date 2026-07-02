@@ -54,6 +54,11 @@ enum CodeHighlighter {
 
         var i = 0
         scan: while i < n {
+            // バックスラッシュエスケープ(LaTeX の \% など)。次の 1 文字を消費する
+            if language.backslashEscapes, units[i] == backslash {
+                i += 2
+                continue
+            }
             // ブロックコメント
             if let start = blockStart, let end = blockEnd, matches(start, at: i) {
                 var j = i + start.count
@@ -115,15 +120,18 @@ enum CodeHighlighter {
         }
 
         let fullRange = NSRange(location: 0, length: n)
-        if !language.keywords.isEmpty, let regex = keywordRegex(for: language) {
+        if language.keywordPattern != nil || !language.keywords.isEmpty,
+           let regex = keywordRegex(for: language) {
             regex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
                 guard let match, !isCovered(match.range) else { return }
                 tokens.append(Token(range: match.range, kind: .keyword))
             }
         }
-        numberRegex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
-            guard let match, !isCovered(match.range) else { return }
-            tokens.append(Token(range: match.range, kind: .number))
+        if language.highlightsNumbers {
+            numberRegex.enumerateMatches(in: text, range: fullRange) { match, _, _ in
+                guard let match, !isCovered(match.range) else { return }
+                tokens.append(Token(range: match.range, kind: .number))
+            }
         }
 
         return tokens
@@ -133,6 +141,13 @@ enum CodeHighlighter {
         cacheLock.lock()
         defer { cacheLock.unlock() }
         if let cached = keywordRegexCache[language.name] { return cached }
+
+        // カスタムパターン指定(LaTeX の \command など)
+        if let custom = language.keywordPattern {
+            let regex = try? NSRegularExpression(pattern: custom)
+            keywordRegexCache[language.name] = regex
+            return regex
+        }
 
         let alternation = language.keywords
             .sorted { $0.count > $1.count }
