@@ -1,0 +1,71 @@
+import SwiftUI
+
+/// ISLISP の式を対話的に評価する REPL コンソール(エディタ下部のパネル)。
+struct MacroREPLView: View {
+    @ObservedObject var engine: MacroEngine
+
+    @State private var input = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if engine.replLines.isEmpty {
+                            Text(verbatim: "ISLISP REPL — 例: (+ 1 2) / (buffer-name) / (insert \"こんにちは\")")
+                                .font(.system(.footnote, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                        }
+                        ForEach(engine.replLines) { line in
+                            Text(verbatim: line.text)
+                                .font(.system(.footnote, design: .monospaced))
+                                .foregroundStyle(color(for: line.kind))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                                .id(line.id)
+                        }
+                    }
+                    .padding(10)
+                }
+                .onChange(of: engine.replLines.count) { _ in
+                    if let last = engine.replLines.last {
+                        withAnimation {
+                            scroll.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            HStack(spacing: 8) {
+                TextField("Enter Expression", text: $input, axis: .vertical)
+                    .font(.system(.body, design: .monospaced))
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .lineLimit(1...4)
+                    .onSubmit(runInput)
+                Button("Run", action: runInput)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(10)
+        }
+        .background(Color(.secondarySystemBackground))
+    }
+
+    private func runInput() {
+        let source = input
+        input = ""
+        engine.evalREPL(source)
+    }
+
+    private func color(for kind: REPLLine.Kind) -> Color {
+        switch kind {
+        case .input: return .secondary
+        case .output: return .primary
+        case .error: return .red
+        }
+    }
+}

@@ -16,6 +16,7 @@ struct EditorView: View {
     @State private var focusMode = false
     @State private var selectionCount = 0
     @State private var showStatistics = false
+    @State private var showREPL = false
 
     private static let fontSizeRange: ClosedRange<Double> = 10...40
     private static let defaultFontSize: Double = 17
@@ -25,22 +26,46 @@ struct EditorView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            TextView(
-                text: $document.text,
-                fontSize: fontSize,
-                mode: mode,
-                indentUsesSpaces: indentUsesSpaces,
-                indentWidth: indentWidth,
-                focusMode: focusMode,
-                wordWrap: wordWrap,
-                selectionCount: $selectionCount,
-                proxy: proxy
-            )
-            if mode.isMarkdown && showPreview {
-                Divider()
-                MarkdownPreviewView(text: document.text)
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                TextView(
+                    text: $document.text,
+                    fontSize: fontSize,
+                    mode: mode,
+                    indentUsesSpaces: indentUsesSpaces,
+                    indentWidth: indentWidth,
+                    focusMode: focusMode,
+                    wordWrap: wordWrap,
+                    selectionCount: $selectionCount,
+                    proxy: proxy,
+                    macroEngine: macroEngine
+                )
+                if mode.isMarkdown && showPreview {
+                    Divider()
+                    MarkdownPreviewView(text: document.text)
+                }
             }
+            if showREPL {
+                Divider()
+                MacroREPLView(engine: macroEngine)
+                    .frame(height: 240)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let toast = macroEngine.toastMessage {
+                Text(verbatim: toast)
+                    .font(.callout)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, 40)
+                    .transition(.opacity)
+            }
+        }
+        .task(id: macroEngine.toastMessage) {
+            guard macroEngine.toastMessage != nil else { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            macroEngine.toastMessage = nil
         }
         .ignoresSafeArea(.keyboard)
         .toolbar {
@@ -149,6 +174,11 @@ struct EditorView: View {
             }
             if !macroEngine.commands.isEmpty {
                 Divider()
+            }
+            Button {
+                showREPL.toggle()
+            } label: {
+                Label("Open REPL", systemImage: showREPL ? "terminal.fill" : "terminal")
             }
             Button {
                 macroEngine.reload()
