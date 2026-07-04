@@ -279,4 +279,73 @@ final class MacroEngineTests: XCTestCase {
         repl(engine, "(defun down (n) (if (= n 0) 0 (down (- n 1)))) (down 600)")
         XCTAssertEqual(engine.replLines.last?.text, "=> 0")
     }
+
+    // MARK: - M5: iPadOS 連携
+
+    func testSpellCheck() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(spell-check "helllo wrold" "en")"#)
+        // 少なくとも 1 語は誤りとして検出される
+        XCTAssertTrue(engine.replLines.last?.text.contains("wrold") == true
+            || engine.replLines.last?.text.contains("helllo") == true)
+    }
+
+    func testOpenURLRejectsNonWebSchemes() throws {
+        let (engine, _) = try makeEngine(text: "")
+        var requested: MacroPlatformRequest?
+        engine.platformHandler = { requested = $0 }
+        repl(engine, #"(open-url "https://example.com")"#)
+        if case .openURL(let url)? = requested {
+            XCTAssertEqual(url.absoluteString, "https://example.com")
+        } else {
+            XCTFail("open-url が要求されていません")
+        }
+        // file:// などは拒否
+        repl(engine, #"(open-url "file:///etc/passwd")"#)
+        XCTAssertEqual(engine.replLines.last?.kind, .error)
+    }
+
+    func testShareAndDictionaryDispatch() throws {
+        let (engine, _) = try makeEngine(text: "共有する本文")
+        var requests: [MacroPlatformRequest] = []
+        engine.platformHandler = { requests.append($0) }
+        repl(engine, "(share (buffer-text))")
+        repl(engine, #"(show-dictionary "辞書")"#)
+        XCTAssertEqual(requests.count, 2)
+        if case .share(let text) = requests[0] {
+            XCTAssertEqual(text, "共有する本文")
+        } else {
+            XCTFail("share が要求されていません")
+        }
+        if case .dictionary(let word) = requests[1] {
+            XCTAssertEqual(word, "辞書")
+        } else {
+            XCTFail("dictionary が要求されていません")
+        }
+    }
+
+    func testPickFileReturnsContent() throws {
+        let (engine, view) = try makeEngine(
+            macroSources: ["p.lsp": #"""
+            (define-command "取り込む"
+              (lambda ()
+                (let ((content (pick-file)))
+                  (if content (insert content) (message "キャンセル")))))
+            """#],
+            text: ""
+        )
+        engine.platformHandler = { request in
+            if case .pickFile(let completion) = request {
+                completion(.string("取り込まれた内容"))
+            }
+        }
+        try runAndWait(engine, commandNamed: "取り込む")
+        XCTAssertEqual(view.text, "取り込まれた内容")
+    }
+
+    func testSampleReadAloudLoads() throws {
+        let (engine, _) = try makeEngine(text: "")
+        XCTAssertTrue(engine.commands.contains { $0.name == "読み上げる" })
+        XCTAssertTrue(engine.commands.contains { $0.name == "共有する" })
+    }
 }
