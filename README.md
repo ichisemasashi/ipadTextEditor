@@ -2,6 +2,9 @@
 
 iPad 専用のテキストエディタ。要件は [docs/requirements.md](docs/requirements.md) を参照。
 
+ISLISP マクロでエディタを拡張できます。書き方は
+**[マクロ マニュアル](docs/macro-manual.md)** を参照。
+
 ## 開発環境
 
 - Xcode 26 以降 / iPadOS 16.0 以降
@@ -26,11 +29,15 @@ ichiseEdit/
   Document/                 # TextDocument(FileDocument, UTF-8)
   Editor/                   # EditorView / TextView(TextKit 2 ベースの UITextView ラッパー)
   Markdown/                 # Markdownハイライト・プレビュー・リスト自動継続
-  Code/                     # コードハイライト(17言語)・自動インデント
+  Code/                     # コードハイライト(24言語)・自動インデント
+  Lisp/                     # ISLISPインタプリタ(リーダ・評価器・組み込み・ILOS)
+  Macro/                    # マクロ実行エンジン・エディタ/システム/iPadOS連携API・REPL
   Resources/                # Assets.xcassets(AppIcon, AccentColor)
   Support/                  # Info.plist(XcodeGen が生成・管理)
 docs/
   requirements.md           # 要件定義書
+  macro-requirements.md     # マクロ機能の要件定義
+  macro-manual.md           # マクロの書き方マニュアル(ユーザー向け)
 ```
 
 ## コマンドラインビルド
