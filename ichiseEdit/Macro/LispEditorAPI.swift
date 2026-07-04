@@ -5,6 +5,19 @@ import UIKit
 /// 編集は UITextView の編集経路(replace / insertText)を通すため Undo 可能。
 enum LispEditorAPI {
 
+    /// マクロは専用スレッドで実行されるため、UIKit に触る処理はすべて
+    /// メインスレッドへ同期ディスパッチして実行する
+    static func runOnMain<T>(_ body: () throws -> T) throws -> T {
+        if Thread.isMainThread {
+            return try body()
+        }
+        var result: Result<T, Error>?
+        DispatchQueue.main.sync {
+            result = Result { try body() }
+        }
+        return try result!.get()
+    }
+
     /// - Parameters:
     ///   - textView: 現在の文書のテキストビュー(閉じられた後は nil)
     ///   - documentName: ファイル名を返すクロージャ
@@ -17,8 +30,11 @@ enum LispEditorAPI {
     ) {
         let globals = interpreter.globals
 
+        // 各関数はメインスレッドで実行される(UIKit アクセスのため)
         func define(_ name: String, _ body: @escaping ([LispValue], LispInterpreter) throws -> LispValue) {
-            globals.define(name, .builtin(LispBuiltin(name, body)))
+            globals.define(name, .builtin(LispBuiltin(name) { args, itp in
+                try runOnMain { try body(args, itp) }
+            }))
         }
 
         func requireTextView() throws -> UITextView {

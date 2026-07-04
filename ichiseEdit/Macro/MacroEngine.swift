@@ -21,35 +21,53 @@ struct REPLLine: Identifiable {
     let text: String
 }
 
+/// メインスレッドで実行するヘルパ(登録コールバックはマクロスレッドからも呼ばれる)
+private func onMain(_ body: @escaping () -> Void) {
+    if Thread.isMainThread {
+        body()
+    } else {
+        DispatchQueue.main.async(execute: body)
+    }
+}
+
 /// マクロ機能の中核。Macros フォルダの .lsp を読み込み、
 /// define-command されたコマンドを保持・実行する(文書ごとに 1 つ)。
-/// メインスレッドから使うこと(エディタ操作を伴うため)。
+/// API はメインスレッドから呼ぶこと。マクロ本体は専用スレッドで実行される。
 final class MacroEngine: ObservableObject {
     @Published private(set) var commands: [MacroCommand] = []
     @Published private(set) var selectionCommands: [MacroCommand] = []
     @Published var errorMessage: String?
     @Published var replLines: [REPLLine] = []
     @Published var toastMessage: String?
+    @Published private(set) var isRunning = false
 
     /// 現在の文書のテキストビュー(EditorView が接続する)。
     /// proxy 自体は軽量で循環参照もないため強参照で保持する(textView は proxy 内で weak)
     var proxy: TextViewProxy?
     var documentName: () -> String = { "" }
+    /// ダイアログの表示方法(テストで差し替え可能。nil なら UIAlertController)
+    var dialogPresenter: ((MacroDialogRequest, @escaping (LispValue) -> Void) -> Void)?
 
     private var interpreter = LispInterpreter()
     private let macrosDirectory: URL
+    private let filesDirectory: URL
     private var loaded = false
 
-    /// - Parameter directory: テスト用の差し替え。nil なら Documents/Macros
-    init(directory: URL? = nil) {
-        if let directory {
-            macrosDirectory = directory
-        } else {
-            let documents = FileManager.default.urls(
-                for: .documentDirectory, in: .userDomainMask
-            )[0]
-            macrosDirectory = documents.appendingPathComponent("Macros", isDirectory: true)
-        }
+    /// マクロ実行スレッドのスタックサイズ。深度上限に達する前にスタックが
+    /// 尽きないよう大きめに確保する(仮想メモリのため実際の使用分しかコミットされない)
+    private static let executionStackSize = 64 * 1024 * 1024
+    /// 専用スレッド前提の評価深度上限
+    private static let executionMaxDepth = 2500
+
+    /// - Parameters:
+    ///   - directory: マクロ置き場(テスト用の差し替え。nil なら Documents/Macros)
+    ///   - filesDirectory: file-* API の基点(nil なら Documents)
+    init(directory: URL? = nil, filesDirectory: URL? = nil) {
+        let documents = FileManager.default.urls(
+            for: .documentDirectory, in: .userDomainMask
+        )[0]
+        macrosDirectory = directory ?? documents.appendingPathComponent("Macros", isDirectory: true)
+        self.filesDirectory = filesDirectory ?? directory?.deletingLastPathComponent() ?? documents
     }
 
     /// 初回のみ読み込む(EditorView の onAppear から呼ぶ)
@@ -86,78 +104,125 @@ final class MacroEngine: ObservableObject {
     }
 
     /// メニューのコマンドを実行する(1 回の実行 = 1 つの Undo 単位)
-    func run(_ command: MacroCommand) {
-        guard let textView = proxy?.textView else { return }
-        withUndoGroup(textView) {
-            do {
-                _ = try interpreter.apply(command.function, [])
-            } catch {
-                errorMessage = "\(command.name): \(error)"
-            }
+    func run(_ command: MacroCommand, completion: (() -> Void)? = nil) {
+        execute(label: command.name, completion: completion) { interpreter in
+            _ = try interpreter.apply(command.function, [])
         }
     }
 
     /// 選択範囲クイック適用: 関数に選択文字列を渡し、返った文字列で置き換える
-    func runSelection(_ command: MacroCommand) {
+    func runSelection(_ command: MacroCommand, completion: (() -> Void)? = nil) {
         guard let textView = proxy?.textView,
-              let range = textView.selectedTextRange, !range.isEmpty else { return }
+              let range = textView.selectedTextRange, !range.isEmpty else {
+            completion?()
+            return
+        }
         let selected = textView.text(in: range) ?? ""
-        withUndoGroup(textView) {
-            do {
-                let result = try interpreter.apply(command.function, [.string(selected)])
-                if case .string(let replacement) = result {
+        execute(label: command.name, completion: completion) { interpreter in
+            let result = try interpreter.apply(command.function, [.string(selected)])
+            if case .string(let replacement) = result {
+                try LispEditorAPI.runOnMain {
                     textView.replace(range, withText: replacement)
                 }
-            } catch {
-                errorMessage = "\(command.name): \(error)"
             }
         }
     }
 
     /// REPL: 式を評価して結果(またはエラー)を履歴に追加する
-    func evalREPL(_ source: String) {
+    func evalREPL(_ source: String, completion: (() -> Void)? = nil) {
         let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        replLines.append(REPLLine(kind: .input, text: "> " + trimmed))
-
-        let textView = proxy?.textView
-        textView?.undoManager?.beginUndoGrouping()
-        defer {
-            textView?.undoManager?.endUndoGrouping()
-            if let textView {
-                textView.delegate?.textViewDidChange?(textView)
-            }
+        guard !trimmed.isEmpty else {
+            completion?()
+            return
         }
-        do {
+        replLines.append(REPLLine(kind: .input, text: "> " + trimmed))
+        execute(label: "REPL", reportErrorsToREPL: true, completion: completion) { interpreter in
             let result = try interpreter.run(trimmed)
-            replLines.append(REPLLine(kind: .output, text: "=> " + result.printed()))
-        } catch {
-            replLines.append(REPLLine(kind: .error, text: "エラー: \(error)"))
+            DispatchQueue.main.async {
+                self.replLines.append(REPLLine(kind: .output, text: "=> " + result.printed()))
+            }
         }
     }
 
-    private func withUndoGroup(_ textView: UITextView, _ body: () -> Void) {
-        textView.undoManager?.beginUndoGrouping()
-        defer {
-            textView.undoManager?.endUndoGrouping()
-            // 編集結果をドキュメント(SwiftUI バインディング)へ確実に同期する
-            textView.delegate?.textViewDidChange?(textView)
+    /// マクロを専用スレッド(大きなスタック)で実行する。
+    /// 実行中は isRunning が立ち、二重実行は拒否する。
+    /// 1 回の実行を 1 つの Undo 単位にまとめ、終了時にバインディングへ同期する。
+    private func execute(
+        label: String,
+        reportErrorsToREPL: Bool = false,
+        completion: (() -> Void)?,
+        _ body: @escaping (LispInterpreter) throws -> Void
+    ) {
+        guard !isRunning else {
+            errorMessage = "別のマクロを実行中です"
+            completion?()
+            return
         }
-        body()
+        isRunning = true
+        let textView = proxy?.textView
+        textView?.undoManager?.beginUndoGrouping()
+
+        let interpreter = self.interpreter
+        let thread = Thread { [weak self] in
+            var caught: Error?
+            do {
+                try body(interpreter)
+            } catch {
+                caught = error
+            }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                textView?.undoManager?.endUndoGrouping()
+                if let textView {
+                    // 編集結果をドキュメント(SwiftUI バインディング)へ確実に同期する
+                    textView.delegate?.textViewDidChange?(textView)
+                }
+                if let caught {
+                    if reportErrorsToREPL {
+                        self.replLines.append(REPLLine(kind: .error, text: "エラー: \(caught)"))
+                    } else {
+                        self.errorMessage = "\(label): \(caught)"
+                    }
+                }
+                self.isRunning = false
+                completion?()
+            }
+        }
+        thread.name = "MacroExecution"
+        thread.stackSize = Self.executionStackSize
+        thread.start()
     }
 
     // MARK: - 内部
 
     private func installBuiltins() {
+        interpreter.maxDepth = Self.executionMaxDepth
         LispEditorAPI.install(
             into: interpreter,
             textView: { [weak self] in self?.proxy?.textView },
             documentName: { [weak self] in self?.documentName() ?? "" },
-            message: { [weak self] text in self?.toastMessage = text }
+            message: { [weak self] text in
+                onMain { self?.toastMessage = text }
+            }
+        )
+        LispSystemAPI.install(
+            into: interpreter,
+            filesDirectory: filesDirectory,
+            presentDialog: { [weak self] request, completion in
+                guard let self else {
+                    completion(.nilValue)
+                    return
+                }
+                if let custom = self.dialogPresenter {
+                    custom(request, completion)
+                } else {
+                    self.presentDefaultDialog(request, completion)
+                }
+            }
         )
         // (format t ...) の出力は REPL コンソールへ
         interpreter.output = { [weak self] text in
-            self?.replLines.append(REPLLine(kind: .output, text: text))
+            onMain { self?.replLines.append(REPLLine(kind: .output, text: text)) }
         }
 
         // コマンド登録(要件 §5.5)
@@ -167,7 +232,7 @@ final class MacroEngine: ObservableObject {
                 guard args.count == 2, case .string(let name) = args[0] else {
                     throw LispError("define-command: (define-command \"名前\" 関数) の形式で指定してください")
                 }
-                self?.commands.append(MacroCommand(name: name, function: args[1]))
+                onMain { self?.commands.append(MacroCommand(name: name, function: args[1])) }
                 return .nilValue
             })
         )
@@ -177,10 +242,54 @@ final class MacroEngine: ObservableObject {
                 guard args.count == 2, case .string(let name) = args[0] else {
                     throw LispError("define-selection-command: (define-selection-command \"名前\" 関数) の形式で指定してください")
                 }
-                self?.selectionCommands.append(MacroCommand(name: name, function: args[1]))
+                onMain { self?.selectionCommands.append(MacroCommand(name: name, function: args[1])) }
                 return .nilValue
             })
         )
+    }
+
+    /// 既定のダイアログ実装(UIAlertController)。メインスレッドで呼ばれる
+    private func presentDefaultDialog(
+        _ request: MacroDialogRequest,
+        _ completion: @escaping (LispValue) -> Void
+    ) {
+        guard var presenter = proxy?.textView?.window?.rootViewController else {
+            completion(.nilValue)
+            return
+        }
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+
+        switch request {
+        case .alert(let message):
+            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { _ in
+                completion(.nilValue)
+            })
+            presenter.present(alert, animated: true)
+        case .confirm(let message):
+            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
+                completion(.nilValue)
+            })
+            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { _ in
+                completion(.t)
+            })
+            presenter.present(alert, animated: true)
+        case .prompt(let message, let defaultText):
+            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert.addTextField { field in
+                field.text = defaultText
+            }
+            alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
+                completion(.nilValue)
+            })
+            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { [weak alert] _ in
+                completion(.string(alert?.textFields?.first?.text ?? ""))
+            })
+            presenter.present(alert, animated: true)
+        }
     }
 
     private func prepareDirectoryWithSamplesIfNeeded() {

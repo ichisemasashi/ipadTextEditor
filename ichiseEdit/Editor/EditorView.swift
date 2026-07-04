@@ -171,6 +171,7 @@ struct EditorView: View {
                 Button(command.name) {
                     macroEngine.run(command)
                 }
+                .disabled(macroEngine.isRunning)
             }
             if !macroEngine.commands.isEmpty {
                 Divider()

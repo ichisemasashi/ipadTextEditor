@@ -48,7 +48,10 @@ struct MacroREPLView: View {
                     .onSubmit(runInput)
                 Button("Run", action: runInput)
                     .buttonStyle(.borderedProminent)
-                    .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(
+                        engine.isRunning
+                            || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    )
             }
             .padding(10)
         }
