@@ -61,6 +61,16 @@
         }
       }
     },
+    "Display" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示"
+          }
+        }
+      }
+    },
     "Excluding Whitespace" : {
       "localizations" : {
         "ja" : {
@@ -237,6 +247,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タブ幅"
+          }
+        }
+      }
+    },
+    "Wrap Lines" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行を折り返す"
           }
         }
       }

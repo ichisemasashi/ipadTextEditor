@@ -9,6 +9,7 @@ struct EditorView: View {
     @AppStorage("editor.fontSize") private var fontSize: Double = 17
     @AppStorage("editor.indentUsesSpaces") private var indentUsesSpaces = true
     @AppStorage("editor.indentWidth") private var indentWidth = 4
+    @AppStorage("editor.wordWrap") private var wordWrap = true
     @State private var statistics = TextStatistics()
     @State private var showPreview = false
     @State private var focusMode = false
@@ -31,6 +32,7 @@ struct EditorView: View {
                 indentUsesSpaces: indentUsesSpaces,
                 indentWidth: indentWidth,
                 focusMode: focusMode,
+                wordWrap: wordWrap,
                 selectionCount: $selectionCount,
                 proxy: proxy
             )
@@ -191,8 +193,14 @@ struct EditorView: View {
                 fontSize = Self.defaultFontSize
             }
             .keyboardShortcut("0", modifiers: .command)
+
+            Divider()
+
+            Toggle(isOn: $wordWrap) {
+                Label("Wrap Lines", systemImage: "arrow.turn.down.left")
+            }
         } label: {
-            Label("Text Size", systemImage: "textformat.size")
+            Label("Display", systemImage: "textformat.size")
         }
     }
 }

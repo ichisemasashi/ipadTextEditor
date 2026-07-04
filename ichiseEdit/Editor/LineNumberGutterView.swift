@@ -39,11 +39,12 @@ final class LineNumberGutterView: UIView {
         setNeedsDisplay()
     }
 
-    /// テキストビューの表示位置に合わせてガターを再配置する(スクロールごとに呼ぶ)
+    /// テキストビューの表示位置に合わせてガターを再配置する(スクロールごとに呼ぶ)。
+    /// 折り返し OFF の横スクロール時も左端に固定されるよう x は contentOffset に追従する
     func synchronize() {
         guard let textView else { return }
         frame = CGRect(
-            x: 0,
+            x: textView.contentOffset.x,
             y: textView.contentOffset.y,
             width: Self.gutterWidth,
             height: textView.bounds.height
