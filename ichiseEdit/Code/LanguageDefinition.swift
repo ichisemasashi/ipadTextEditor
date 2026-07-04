@@ -334,7 +334,8 @@ enum LanguageRegistry {
             "setf", "and", "or", "not", "t", "nil", "eq", "eql", "equal", "car", "cdr",
             "cons", "list", "mapcar", "format", "error", "signal-condition",
             "unwind-protect", "with-handler", "class", "the", "assure", "dynamic",
-            "dynamic-let",
+            "dynamic-let", "create", "call-next-method", "next-method-p",
+            "instancep", "class-of", "subclassp", "generic-function-p",
         ],
         caseInsensitiveKeywords: true,
         extraSymbolCharacters: lispSymbolCharacters

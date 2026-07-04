@@ -13,6 +13,10 @@ indirect enum LispValue {
     case vector([LispValue])
     case function(LispFunction)
     case builtin(LispBuiltin)
+    // ILOS(オブジェクトシステム)
+    case classObject(LispClass)
+    case instance(LispInstance)
+    case generic(LispGeneric)
 
     var isNil: Bool {
         if case .nilValue = self { return true }
@@ -56,6 +60,8 @@ final class LispFunction {
     let body: [LispValue]
     let closure: LispEnvironment
     let isMacro: Bool
+    /// スロットアクセサなど、本体が Swift 実装のメソッドで使う(通常の関数は nil)
+    let builtinBody: LispBuiltin?
 
     init(
         name: String?,
@@ -63,7 +69,8 @@ final class LispFunction {
         restParameter: String?,
         body: [LispValue],
         closure: LispEnvironment,
-        isMacro: Bool = false
+        isMacro: Bool = false,
+        builtinBody: LispBuiltin? = nil
     ) {
         self.name = name
         self.parameters = parameters
@@ -71,6 +78,7 @@ final class LispFunction {
         self.body = body
         self.closure = closure
         self.isMacro = isMacro
+        self.builtinBody = builtinBody
     }
 }
 
@@ -82,6 +90,130 @@ final class LispBuiltin {
     init(_ name: String, _ body: @escaping ([LispValue], LispInterpreter) throws -> LispValue) {
         self.name = name
         self.body = body
+    }
+}
+
+// MARK: - ILOS(オブジェクトシステム)
+
+/// スロット定義
+struct LispSlotSpec {
+    let name: String
+    let initform: LispValue?      // 初期値式(未指定なら nil)
+    let initarg: String?          // create 時のキーワード引数名
+    let accessor: String?         // 読み書きアクセサ関数名
+    let reader: String?           // 読み取り専用アクセサ関数名
+}
+
+/// クラス(defclass)。多重継承をサポートする。
+final class LispClass {
+    let name: String
+    let directSuperclasses: [LispClass]
+    let directSlots: [LispSlotSpec]
+    /// C3 線形化によるクラス優先順位リスト(自分自身から祖先順)
+    private(set) var precedenceList: [LispClass] = []
+    /// 継承を含めた全スロット(先祖優先で重複排除)
+    private(set) var allSlots: [LispSlotSpec] = []
+
+    init(name: String, directSuperclasses: [LispClass], directSlots: [LispSlotSpec]) {
+        self.name = name
+        self.directSuperclasses = directSuperclasses
+        self.directSlots = directSlots
+    }
+
+    func finalize() throws {
+        precedenceList = try LispClass.c3Linearize(self)
+        // スロットは優先順位の低い(祖先)側から集め、派生クラスの定義で上書きする
+        var merged: [String: LispSlotSpec] = [:]
+        var order: [String] = []
+        for cls in precedenceList.reversed() {
+            for slot in cls.directSlots {
+                if merged[slot.name] == nil { order.append(slot.name) }
+                merged[slot.name] = slot
+            }
+        }
+        allSlots = order.compactMap { merged[$0] }
+    }
+
+    func isSubclass(of other: LispClass) -> Bool {
+        precedenceList.contains { $0 === other }
+    }
+
+    /// C3 線形化(Python/Dylan と同じ単調な多重継承解決)
+    static func c3Linearize(_ cls: LispClass) throws -> [LispClass] {
+        if cls.directSuperclasses.isEmpty {
+            return [cls]
+        }
+        var sequences: [[LispClass]] = try cls.directSuperclasses.map { try c3Linearize($0) }
+        sequences.append(cls.directSuperclasses)
+        var result: [LispClass] = [cls]
+        var lists = sequences
+
+        while true {
+            lists = lists.filter { !$0.isEmpty }
+            if lists.isEmpty { break }
+            var candidate: LispClass?
+            for list in lists {
+                let head = list[0]
+                let appearsInTail = lists.contains { other in
+                    other.dropFirst().contains { $0 === head }
+                }
+                if !appearsInTail {
+                    candidate = head
+                    break
+                }
+            }
+            guard let next = candidate else {
+                throw LispError("クラス \(cls.name) の継承関係を解決できません(継承が矛盾しています)")
+            }
+            result.append(next)
+            lists = lists.map { list in
+                list.first === next ? Array(list.dropFirst()) : list
+            }
+        }
+        return result
+    }
+}
+
+/// インスタンス(create で生成)
+final class LispInstance {
+    let isa: LispClass
+    var slots: [String: LispValue]
+
+    init(isa: LispClass, slots: [String: LispValue]) {
+        self.isa = isa
+        self.slots = slots
+    }
+}
+
+/// 総称関数(defgeneric)に属する 1 つのメソッド
+struct LispMethod {
+    enum Qualifier {
+        case primary
+        case before
+        case after
+        case around
+    }
+
+    let qualifier: Qualifier
+    let specializer: LispClass   // 第 1 引数に要求するクラス
+    let function: LispFunction   // 本体(call-next-method を閉包に持つ)
+}
+
+/// 総称関数(defgeneric)。メソッドをクラスで単一ディスパッチする。
+final class LispGeneric {
+    let name: String
+    private(set) var methods: [LispMethod] = []
+
+    init(name: String) {
+        self.name = name
+    }
+
+    func addMethod(_ method: LispMethod) {
+        // 同じ修飾子・同じスペシャライザの既存メソッドは置き換える
+        methods.removeAll {
+            $0.qualifier == method.qualifier && $0.specializer === method.specializer
+        }
+        methods.append(method)
     }
 }
 
@@ -107,6 +239,12 @@ enum LispEquality {
         case (.function(let x), .function(let y)):
             return x === y
         case (.builtin(let x), .builtin(let y)):
+            return x === y
+        case (.classObject(let x), .classObject(let y)):
+            return x === y
+        case (.instance(let x), .instance(let y)):
+            return x === y
+        case (.generic(let x), .generic(let y)):
             return x === y
         default:
             return false
@@ -175,6 +313,12 @@ extension LispValue {
             return "#<function \(fn.name ?? "lambda")>"
         case .builtin(let builtin):
             return "#<builtin \(builtin.name)>"
+        case .classObject(let cls):
+            return "#<class \(cls.name)>"
+        case .instance(let obj):
+            return "#<instance of \(obj.isa.name)>"
+        case .generic(let g):
+            return "#<generic \(g.name)>"
         }
     }
 
