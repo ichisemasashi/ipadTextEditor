@@ -51,6 +51,16 @@
         }
       }
     },
+    "Cancel" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        }
+      }
+    },
     "Characters" : {
       "localizations" : {
         "ja" : {

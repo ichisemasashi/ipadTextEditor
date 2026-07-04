@@ -24,6 +24,12 @@ final class LispInterpreter {
 
     // MARK: - エントリポイント
 
+    /// ダイアログなどでユーザーの応答を待った時間を実行時間に数えないよう、
+    /// 期限を延長する
+    func extendDeadline(by interval: TimeInterval) {
+        deadline = deadline?.addingTimeInterval(interval)
+    }
+
     /// ソース文字列を読み、全フォームを順に評価して最後の値を返す
     @discardableResult
     func run(_ source: String) throws -> LispValue {
