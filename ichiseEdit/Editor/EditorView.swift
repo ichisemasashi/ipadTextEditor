@@ -6,6 +6,7 @@ struct EditorView: View {
     var fileURL: URL?
 
     @StateObject private var proxy = TextViewProxy()
+    @StateObject private var macroEngine = MacroEngine()
     @AppStorage("editor.fontSize") private var fontSize: Double = 17
     @AppStorage("editor.indentUsesSpaces") private var indentUsesSpaces = true
     @AppStorage("editor.indentWidth") private var indentWidth = 4
@@ -59,6 +60,8 @@ struct EditorView: View {
                     indentMenu
                 }
 
+                macroMenu
+
                 Button {
                     focusMode.toggle()
                 } label: {
@@ -94,6 +97,23 @@ struct EditorView: View {
                 }
             }
         }
+        .onAppear {
+            macroEngine.proxy = proxy
+            let name = fileURL?.lastPathComponent ?? ""
+            macroEngine.documentName = { name }
+            macroEngine.loadIfNeeded()
+        }
+        .alert(
+            "Macro Error",
+            isPresented: Binding(
+                get: { macroEngine.errorMessage != nil },
+                set: { if !$0 { macroEngine.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(verbatim: macroEngine.errorMessage ?? "")
+        }
         // 全文走査(1MBで約17ms)を毎キーストロークで行うと入力が遅延するため、
         // 入力が止まってからバックグラウンドで再計算する
         .task(id: document.text) {
@@ -118,6 +138,26 @@ struct EditorView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .monospacedDigit()
+    }
+
+    private var macroMenu: some View {
+        Menu {
+            ForEach(macroEngine.commands) { command in
+                Button(command.name) {
+                    macroEngine.run(command)
+                }
+            }
+            if !macroEngine.commands.isEmpty {
+                Divider()
+            }
+            Button {
+                macroEngine.reload()
+            } label: {
+                Label("Reload Macros", systemImage: "arrow.clockwise")
+            }
+        } label: {
+            Label("Macros", systemImage: "hammer")
+        }
     }
 
     private var indentMenu: some View {

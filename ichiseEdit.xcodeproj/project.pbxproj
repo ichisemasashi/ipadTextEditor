@@ -31,12 +31,15 @@
 		808682DD5EA1C4496966D24C /* MarkdownHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF44F87E03101D8124597A1E /* MarkdownHighlighterTests.swift */; };
 		80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19913D879598E9EC5E37292 /* IchiseEditApp.swift */; };
 		862605AA9DD91756C0B15652 /* TextStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */; };
+		901BB50DB9012EC229344FDC /* MacroEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CACF30B445BAA677A1C8662 /* MacroEngineTests.swift */; };
 		9E574F4BE5B1592587DB223B /* CodeHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915560F624990F44169622FF /* CodeHighlighter.swift */; };
 		BC2F7E75D9F2DFEF0FE9F221 /* EditorMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460DB1D3D22AA0DC54CB6DEA /* EditorMode.swift */; };
+		C1830781870EEC03FC7AA0E1 /* MacroEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AAA7C087E65D6CBE426F07 /* MacroEngine.swift */; };
 		C9AD0329CE5B6D26D647DD1F /* DetailedTextStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAAE51CE7F5E05E073C0F64 /* DetailedTextStatistics.swift */; };
 		CF0B7A130BD5160A5B3C2980 /* LispBuiltins.swift in Sources */ = {isa = PBXBuildFile; fileRef = 475F66ABCFBD115ED2049B3A /* LispBuiltins.swift */; };
 		D31818226ADE3F4AE9ABF3F4 /* TextStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A38B1D72643512FA6F621D /* TextStatistics.swift */; };
 		D3FD661B45FE4C1026A43773 /* MarkdownHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A689E3962A4A5D0E1622F8EC /* MarkdownHighlighter.swift */; };
+		DBFDD593B63C2678FE3484CF /* LispEditorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B168A6666F1254B29F0C2618 /* LispEditorAPI.swift */; };
 		E2DD06BC15B76DF510A0E038 /* CodeHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C367FC3ED9E5FD050687EDA4 /* CodeHighlighterTests.swift */; };
 		E3B2367C35024E16941C0E1E /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA184C3C42312511488E1DFB /* StatisticsView.swift */; };
 		EC6EFCE64F3F9CE934994925 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 302B16160A53975C365A015B /* Localizable.xcstrings */; };
@@ -57,9 +60,11 @@
 
 /* Begin PBXFileReference section */
 		05144775464E019983124BAB /* MarkdownListContinuationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownListContinuationTests.swift; sourceTree = "<group>"; };
+		17AAA7C087E65D6CBE426F07 /* MacroEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroEngine.swift; sourceTree = "<group>"; };
 		190393005D0552BBD2D4B094 /* MarkdownListContinuation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownListContinuation.swift; sourceTree = "<group>"; };
 		2B2CD297A2BEBCF124186484 /* CodeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeTheme.swift; sourceTree = "<group>"; };
 		302B16160A53975C365A015B /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		3CACF30B445BAA677A1C8662 /* MacroEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroEngineTests.swift; sourceTree = "<group>"; };
 		460DB1D3D22AA0DC54CB6DEA /* EditorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMode.swift; sourceTree = "<group>"; };
 		475F66ABCFBD115ED2049B3A /* LispBuiltins.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispBuiltins.swift; sourceTree = "<group>"; };
 		4BAAE51CE7F5E05E073C0F64 /* DetailedTextStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedTextStatistics.swift; sourceTree = "<group>"; };
@@ -79,6 +84,7 @@
 		A689E3962A4A5D0E1622F8EC /* MarkdownHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownHighlighter.swift; sourceTree = "<group>"; };
 		A8700510BE0F4AEB9DCFBBC5 /* MarkdownTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTheme.swift; sourceTree = "<group>"; };
 		AACD2EF4D30F930095C8594B /* MarkdownPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownPreviewView.swift; sourceTree = "<group>"; };
+		B168A6666F1254B29F0C2618 /* LispEditorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispEditorAPI.swift; sourceTree = "<group>"; };
 		B5A38B1D72643512FA6F621D /* TextStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStatistics.swift; sourceTree = "<group>"; };
 		B80DF0786448A408D22894F2 /* LanguageDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageDefinition.swift; sourceTree = "<group>"; };
 		BF44F87E03101D8124597A1E /* MarkdownHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownHighlighterTests.swift; sourceTree = "<group>"; };
@@ -115,12 +121,22 @@
 				858B0CEA349321EB830E53EE /* LatexHighlighterTests.swift */,
 				73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */,
 				768F249EFE4178CC7E135962 /* LispInterpreterTests.swift */,
+				3CACF30B445BAA677A1C8662 /* MacroEngineTests.swift */,
 				BF44F87E03101D8124597A1E /* MarkdownHighlighterTests.swift */,
 				05144775464E019983124BAB /* MarkdownListContinuationTests.swift */,
 				5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */,
 				F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */,
 			);
 			path = ichiseEditTests;
+			sourceTree = "<group>";
+		};
+		2C7D1B727A4D3CFD8FF2E9B5 /* Macro */ = {
+			isa = PBXGroup;
+			children = (
+				B168A6666F1254B29F0C2618 /* LispEditorAPI.swift */,
+				17AAA7C087E65D6CBE426F07 /* MacroEngine.swift */,
+			);
+			path = Macro;
 			sourceTree = "<group>";
 		};
 		328E90BFCBFEAB40D0881313 /* Lisp */ = {
@@ -171,6 +187,7 @@
 				51331926E2FBA37BED0A240B /* Document */,
 				F4B115F39C8D5DCD5540EA1A /* Editor */,
 				328E90BFCBFEAB40D0881313 /* Lisp */,
+				2C7D1B727A4D3CFD8FF2E9B5 /* Macro */,
 				37AA5D92B4B50F033CF722E4 /* Markdown */,
 				B422D56E86C9CE2D869C9ED2 /* Resources */,
 				3BEA391C20EA23E068FA8211 /* Support */,
@@ -329,6 +346,7 @@
 				2EB5BD98A968ACEB012B08BB /* LatexHighlighterTests.swift in Sources */,
 				06D8063E5E3B1AC437615CBF /* LispHaskellHighlighterTests.swift in Sources */,
 				599873A4FD335D13DE59FC0A /* LispInterpreterTests.swift in Sources */,
+				901BB50DB9012EC229344FDC /* MacroEngineTests.swift in Sources */,
 				808682DD5EA1C4496966D24C /* MarkdownHighlighterTests.swift in Sources */,
 				717755413E60E6C0EC3FE68B /* MarkdownListContinuationTests.swift in Sources */,
 				096EE2F885A6915165EC2764 /* PerformanceTests.swift in Sources */,
@@ -350,11 +368,13 @@
 				76218CAEB17B6AE081C78F68 /* LanguageDefinition.swift in Sources */,
 				7A60F113A6F3E96FA2DA7F4B /* LineNumberGutterView.swift in Sources */,
 				CF0B7A130BD5160A5B3C2980 /* LispBuiltins.swift in Sources */,
+				DBFDD593B63C2678FE3484CF /* LispEditorAPI.swift in Sources */,
 				72E136C8AC7B43EA2347B7B4 /* LispEnvironment.swift in Sources */,
 				5BA1DCA83510FFD311E84889 /* LispError.swift in Sources */,
 				0C4C06120D42E7DDB4C1332E /* LispInterpreter.swift in Sources */,
 				6AAE0751A57FA5BA1CC80A92 /* LispReader.swift in Sources */,
 				4BF6F7C016E61FB0DCEE9147 /* LispValue.swift in Sources */,
+				C1830781870EEC03FC7AA0E1 /* MacroEngine.swift in Sources */,
 				D3FD661B45FE4C1026A43773 /* MarkdownHighlighter.swift in Sources */,
 				514C31469EA5301B53C9D7EA /* MarkdownListContinuation.swift in Sources */,
 				394B42A81711504BB26A4E95 /* MarkdownPreviewView.swift in Sources */,

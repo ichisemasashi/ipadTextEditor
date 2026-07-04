@@ -171,6 +171,26 @@
         }
       }
     },
+    "Macro Error" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マクロエラー"
+          }
+        }
+      }
+    },
+    "Macros" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マクロ"
+          }
+        }
+      }
+    },
     "Manuscript Pages (400 chars)" : {
       "localizations" : {
         "ja" : {
@@ -207,6 +227,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "プレビュー"
+          }
+        }
+      }
+    },
+    "Reload Macros" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マクロを再読み込み"
           }
         }
       }
