@@ -47,6 +47,7 @@
 		E3B2367C35024E16941C0E1E /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA184C3C42312511488E1DFB /* StatisticsView.swift */; };
 		E8F49ECB75EE0050058EA731 /* MacroREPLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B989BDEAB72DC4C9EB9909 /* MacroREPLView.swift */; };
 		EC6EFCE64F3F9CE934994925 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 302B16160A53975C365A015B /* Localizable.xcstrings */; };
+		EDBB772EA1D4A8F390BF2238 /* DocExamplesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1490114121BCC32E7044F7A8 /* DocExamplesTest.swift */; };
 		F27ABA336BC6BE959BFC8FC3 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDC688ABE66BC1A26AB4DA86 /* TextView.swift */; };
 		F7F7C961645ACA5E17A85E43 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC847DA9CCA61A5B31ECAD21 /* Assets.xcassets */; };
 		FA68804F7F5F1B0ADDCBEB42 /* TextDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3F68CA1D308780230511CF /* TextDocument.swift */; };
@@ -64,6 +65,7 @@
 
 /* Begin PBXFileReference section */
 		05144775464E019983124BAB /* MarkdownListContinuationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownListContinuationTests.swift; sourceTree = "<group>"; };
+		1490114121BCC32E7044F7A8 /* DocExamplesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocExamplesTest.swift; sourceTree = "<group>"; };
 		17AAA7C087E65D6CBE426F07 /* MacroEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroEngine.swift; sourceTree = "<group>"; };
 		190393005D0552BBD2D4B094 /* MarkdownListContinuation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownListContinuation.swift; sourceTree = "<group>"; };
 		2B2CD297A2BEBCF124186484 /* CodeTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeTheme.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				D144D6D259410C05A55846B8 /* CodeAutoIndentTests.swift */,
 				C367FC3ED9E5FD050687EDA4 /* CodeHighlighterTests.swift */,
 				FD08FCA1874CCC41CA2ED244 /* DetailedTextStatisticsTests.swift */,
+				1490114121BCC32E7044F7A8 /* DocExamplesTest.swift */,
 				858B0CEA349321EB830E53EE /* LatexHighlighterTests.swift */,
 				73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */,
 				4C5CF2B99041355CBE2FF754 /* LispILOSTests.swift */,
@@ -355,6 +358,7 @@
 				446FB596CFE88019A7E0E6C9 /* CodeAutoIndentTests.swift in Sources */,
 				E2DD06BC15B76DF510A0E038 /* CodeHighlighterTests.swift in Sources */,
 				1A202195BDAB1DDBBF544C31 /* DetailedTextStatisticsTests.swift in Sources */,
+				EDBB772EA1D4A8F390BF2238 /* DocExamplesTest.swift in Sources */,
 				2EB5BD98A968ACEB012B08BB /* LatexHighlighterTests.swift in Sources */,
 				06D8063E5E3B1AC437615CBF /* LispHaskellHighlighterTests.swift in Sources */,
 				1604426C49CFAC04B1B292FC /* LispILOSTests.swift in Sources */,

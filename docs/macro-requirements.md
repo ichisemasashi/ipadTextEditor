@@ -3,6 +3,7 @@
 - 作成日: 2026-07-04
 - ステータス: 確定(v1)
 - 親文書: [requirements.md](requirements.md)
+- ユーザー向けの書き方マニュアル: [macro-manual.md](macro-manual.md)
 
 ## 1. 概要・目的
 
