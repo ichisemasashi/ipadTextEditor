@@ -8,10 +8,12 @@ enum LispEditorAPI {
     /// - Parameters:
     ///   - textView: 現在の文書のテキストビュー(閉じられた後は nil)
     ///   - documentName: ファイル名を返すクロージャ
+    ///   - message: (message str) の表示先(トースト表示)
     static func install(
         into interpreter: LispInterpreter,
         textView: @escaping () -> UITextView?,
-        documentName: @escaping () -> String
+        documentName: @escaping () -> String,
+        message: @escaping (String) -> Void = { _ in }
     ) {
         let globals = interpreter.globals
 
@@ -196,6 +198,40 @@ enum LispEditorAPI {
                 try replaceCharacterRange(view, 0, text.count, with: replaced)
             }
             return .integer(count)
+        }
+
+        // MARK: ユーティリティ(要件 §5.3)
+
+        define("clipboard-text") { _, _ in
+            guard let text = UIPasteboard.general.string else { return .nilValue }
+            return .string(text)
+        }
+        define("set-clipboard") { args, _ in
+            guard args.count == 1, case .string(let s) = args[0] else {
+                throw LispError("set-clipboard: 文字列が必要です")
+            }
+            UIPasteboard.general.string = s
+            return .nilValue
+        }
+        define("current-date-string") { args, _ in
+            let formatter = DateFormatter()
+            formatter.locale = Locale.current
+            if let first = args.first {
+                guard case .string(let format) = first else {
+                    throw LispError("current-date-string: 書式は文字列で指定してください")
+                }
+                formatter.dateFormat = format
+            } else {
+                formatter.dateFormat = "yyyy-MM-dd HH:mm"
+            }
+            return .string(formatter.string(from: Date()))
+        }
+        define("message") { args, _ in
+            guard args.count == 1 else {
+                throw LispError("message: 引数は1つ必要です")
+            }
+            message(args[0].displayed())
+            return .nilValue
         }
     }
 

@@ -71,6 +71,16 @@
         }
       }
     },
+    "Enter Expression" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "式を入力"
+          }
+        }
+      }
+    },
     "Excluding Whitespace" : {
       "localizations" : {
         "ja" : {
@@ -211,6 +221,16 @@
         }
       }
     },
+    "Open REPL" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "REPLを開く"
+          }
+        }
+      }
+    },
     "Paragraphs" : {
       "localizations" : {
         "ja" : {
@@ -257,6 +277,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "標準サイズに戻す"
+          }
+        }
+      }
+    },
+    "Run" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実行"
           }
         }
       }

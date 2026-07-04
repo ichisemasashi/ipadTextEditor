@@ -32,6 +32,7 @@ struct TextView: UIViewRepresentable {
     var wordWrap: Bool = true
     var selectionCount: Binding<Int>?
     var proxy: TextViewProxy?
+    var macroEngine: MacroEngine?
 
     private var baseFont: UIFont {
         mode.codeLanguage != nil
@@ -205,6 +206,29 @@ struct TextView: UIViewRepresentable {
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
             gutter?.synchronize()
+        }
+
+        // MARK: - 選択範囲クイック適用(編集メニューへのマクロ追加)
+
+        func textView(
+            _ textView: UITextView,
+            editMenuForTextIn range: NSRange,
+            suggestedActions: [UIMenuElement]
+        ) -> UIMenu? {
+            guard range.length > 0,
+                  let engine = parent.macroEngine,
+                  !engine.selectionCommands.isEmpty else { return nil }
+            let actions = engine.selectionCommands.map { command in
+                UIAction(title: command.name) { [weak engine] _ in
+                    engine?.runSelection(command)
+                }
+            }
+            let macroMenu = UIMenu(
+                title: String(localized: "Macros"),
+                image: UIImage(systemName: "hammer"),
+                children: actions
+            )
+            return UIMenu(children: suggestedActions + [macroMenu])
         }
 
         // MARK: - 改行・タブの編集支援

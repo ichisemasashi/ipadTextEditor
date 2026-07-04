@@ -361,6 +361,18 @@ enum LispBuiltins {
             }
             return .string(strings.joined(separator: separator))
         }
+        define("string-upcase") { args, _ in
+            guard case .string(let s) = try single(args, "string-upcase") else {
+                throw LispError("string-upcase: 文字列が必要です")
+            }
+            return .string(s.uppercased())
+        }
+        define("string-downcase") { args, _ in
+            guard case .string(let s) = try single(args, "string-downcase") else {
+                throw LispError("string-downcase: 文字列が必要です")
+            }
+            return .string(s.lowercased())
+        }
         define("sort") { args, _ in
             guard let items = try single(args, "sort").toArray() else {
                 throw LispError("sort: リストが必要です")

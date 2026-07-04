@@ -104,8 +104,10 @@ final class MacroEngineTests: XCTestCase {
         """#.write(to: dir.appendingPathComponent("a.lsp"), atomically: true, encoding: .utf8)
 
         let (engine, view) = makeEngine(directory: dir, text: "abc")
-        XCTAssertEqual(engine.commands.map(\.name), ["びっくり"])
-        engine.run(engine.commands[0])
+        guard let command = engine.commands.first(where: { $0.name == "びっくり" }) else {
+            return XCTFail("コマンドが登録されていません")
+        }
+        engine.run(command)
         XCTAssertEqual(view.text, "abc!")
         XCTAssertNil(engine.errorMessage)
     }
@@ -113,7 +115,9 @@ final class MacroEngineTests: XCTestCase {
     func testSamplesInstalledWhenDirectoryMissing() {
         let dir = temporaryDirectory(create: false)
         let (engine, _) = makeEngine(directory: dir, text: "")
-        XCTAssertEqual(engine.commands.count, MacroEngine.sampleMacros.count)
+        // サンプル5ファイル = メニューコマンド4つ+選択コマンド2つ
+        XCTAssertEqual(engine.commands.count, 4)
+        XCTAssertEqual(engine.selectionCommands.count, 2)
     }
 
     func testSampleSortLines() {
@@ -147,13 +151,61 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertNotNil(engine.errorMessage)
     }
 
+    func testREPLEvaluatesAndRecordsHistory() {
+        let dir = temporaryDirectory(create: true)
+        let (engine, _) = makeEngine(directory: dir, text: "hello")
+        engine.evalREPL("(+ 1 2)")
+        XCTAssertEqual(engine.replLines.map(\.text), ["> (+ 1 2)", "=> 3"])
+        engine.evalREPL("(buffer-length)")
+        XCTAssertEqual(engine.replLines.last?.text, "=> 5")
+        engine.evalREPL("(undefined-fn)")
+        XCTAssertEqual(engine.replLines.last?.kind, .error)
+    }
+
+    func testREPLCapturesFormatOutput() {
+        let dir = temporaryDirectory(create: true)
+        let (engine, _) = makeEngine(directory: dir, text: "")
+        engine.evalREPL(#"(format t "hi ~D" 42)"#)
+        XCTAssertTrue(engine.replLines.contains { $0.text == "hi 42" })
+    }
+
+    func testSelectionCommand() throws {
+        let dir = temporaryDirectory(create: true)
+        try #"(define-selection-command "upcase" (lambda (text) (string-upcase text)))"#.write(
+            to: dir.appendingPathComponent("s.lsp"), atomically: true, encoding: .utf8
+        )
+        let (engine, view) = makeEngine(directory: dir, text: "abc def")
+        guard let command = engine.selectionCommands.first(where: { $0.name == "upcase" }) else {
+            return XCTFail("選択コマンドが登録されていません")
+        }
+        view.selectedRange = NSRange(location: 0, length: 3)
+        engine.runSelection(command)
+        XCTAssertEqual(view.text, "ABC def")
+    }
+
+    func testUtilities() throws {
+        let dir = temporaryDirectory(create: true)
+        let (engine, _) = makeEngine(directory: dir, text: "")
+        engine.evalREPL(#"(set-clipboard "コピー")"#)
+        XCTAssertEqual(UIPasteboard.general.string, "コピー")
+        engine.evalREPL("(clipboard-text)")
+        XCTAssertEqual(engine.replLines.last?.text, "=> \"コピー\"")
+        engine.evalREPL(#"(message "できました")"#)
+        XCTAssertEqual(engine.toastMessage, "できました")
+        engine.evalREPL(#"(current-date-string "yyyy")"#)
+        XCTAssertTrue(engine.replLines.last?.text.contains("20") == true)
+    }
+
     func testRuntimeErrorIsReportedAndDoesNotCrash() throws {
         let dir = temporaryDirectory(create: true)
         try #"(define-command "失敗" (lambda () (error "わざと")))"#.write(
             to: dir.appendingPathComponent("f.lsp"), atomically: true, encoding: .utf8
         )
         let (engine, view) = makeEngine(directory: dir, text: "keep")
-        engine.run(engine.commands[0])
+        guard let command = engine.commands.first(where: { $0.name == "失敗" }) else {
+            return XCTFail("コマンドが登録されていません")
+        }
+        engine.run(command)
         XCTAssertEqual(view.text, "keep")
         XCTAssertTrue(engine.errorMessage?.contains("わざと") == true)
     }
