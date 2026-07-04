@@ -337,6 +337,45 @@ enum LispBuiltins {
             gensymCounter += 1
             return .symbol("#:g\(gensymCounter)")
         }
+
+        // MARK: テキスト処理ユーティリティ(マクロでの実用性のための拡張。ISO外)
+
+        define("string-split") { args, _ in
+            let (target, separator) = try twoStrings(args, "string-split")
+            guard !separator.isEmpty else {
+                throw LispError("string-split: 区切り文字が空です")
+            }
+            return .list(target.components(separatedBy: separator).map { .string($0) })
+        }
+        define("string-join") { args, _ in
+            guard args.count == 2,
+                  let items = args[0].toArray(),
+                  case .string(let separator) = args[1] else {
+                throw LispError("string-join: (string-join リスト 区切り) の形式で指定してください")
+            }
+            let strings = try items.map { item -> String in
+                guard case .string(let s) = item else {
+                    throw LispError("string-join: 文字列のリストが必要です")
+                }
+                return s
+            }
+            return .string(strings.joined(separator: separator))
+        }
+        define("sort") { args, _ in
+            guard let items = try single(args, "sort").toArray() else {
+                throw LispError("sort: リストが必要です")
+            }
+            if items.allSatisfy({ if case .string = $0 { return true }; return false }) {
+                let strings = items.compactMap { item -> String? in
+                    if case .string(let s) = item { return s }
+                    return nil
+                }
+                return .list(strings.sorted().map { .string($0) })
+            }
+            let numbers = try items.map { try asDouble($0) }
+            let sorted = zip(numbers, items).sorted { $0.0 < $1.0 }.map(\.1)
+            return .list(sorted)
+        }
     }
 
     // MARK: - convert(特殊形式から呼ばれる)

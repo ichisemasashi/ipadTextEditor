@@ -203,6 +203,13 @@ final class LispInterpreterTests: XCTestCase {
         XCTAssertEqual(try run("(convert 3 <float>)"), "3.0")
     }
 
+    func testTextUtilities() throws {
+        XCTAssertEqual(try run(#"(string-split "a,b,,c" ",")"#), #"("a" "b" "" "c")"#)
+        XCTAssertEqual(try run(#"(string-join (list "a" "b" "c") "-")"#), "\"a-b-c\"")
+        XCTAssertEqual(try run(#"(sort (list "banana" "apple" "cherry"))"#), #"("apple" "banana" "cherry")"#)
+        XCTAssertEqual(try run("(sort (list 3 1 2))"), "(1 2 3)")
+    }
+
     // MARK: - エラー処理
 
     func testErrorAndWithHandler() throws {
