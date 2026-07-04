@@ -211,6 +211,26 @@
         }
       }
     },
+    "Macro Manual" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マクロマニュアル"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        }
+      }
+    },
     "Manuscript Pages (400 chars)" : {
       "localizations" : {
         "ja" : {

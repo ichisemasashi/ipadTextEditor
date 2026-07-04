@@ -17,6 +17,8 @@ targets:
     platform: iOS
     sources:
       - ichiseEdit
+      - path: docs/macro-manual.md
+        buildPhase: resources
     scheme:
       testTargets:
         - ichiseEditTests

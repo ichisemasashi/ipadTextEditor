@@ -17,6 +17,7 @@ struct EditorView: View {
     @State private var selectionCount = 0
     @State private var showStatistics = false
     @State private var showREPL = false
+    @State private var showManual = false
 
     private static let fontSizeRange: ClosedRange<Double> = 10...40
     private static let defaultFontSize: Double = 17
@@ -139,6 +140,9 @@ struct EditorView: View {
         } message: {
             Text(verbatim: macroEngine.errorMessage ?? "")
         }
+        .sheet(isPresented: $showManual) {
+            ManualView()
+        }
         // 全文走査(1MBで約17ms)を毎キーストロークで行うと入力が遅延するため、
         // 入力が止まってからバックグラウンドで再計算する
         .task(id: document.text) {
@@ -185,6 +189,11 @@ struct EditorView: View {
                 macroEngine.reload()
             } label: {
                 Label("Reload Macros", systemImage: "arrow.clockwise")
+            }
+            Button {
+                showManual = true
+            } label: {
+                Label("Macro Manual", systemImage: "book")
             }
         } label: {
             Label("Macros", systemImage: "hammer")
