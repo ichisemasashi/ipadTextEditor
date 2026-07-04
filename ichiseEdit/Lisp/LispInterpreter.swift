@@ -51,9 +51,14 @@ final class LispInterpreter {
         defer { depth -= 1 }
 
         switch form {
-        case .nilValue, .t, .integer, .double, .string, .character, .vector, .function, .builtin:
+        case .nilValue, .t, .integer, .double, .string, .character, .vector,
+             .function, .builtin, .classObject, .instance, .generic:
             return form
         case .symbol(let name):
+            // キーワードシンボル(:x など)は自己評価する
+            if name.hasPrefix(":") {
+                return form
+            }
             guard let value = env.lookup(name) else {
                 throw LispError("未定義の変数です: \(name)")
             }
@@ -113,6 +118,8 @@ final class LispInterpreter {
                 result = try eval(form, in: env)
             }
             return result
+        case .generic(let generic):
+            return try applyGeneric(generic, args)
         default:
             throw LispError("関数ではありません: \(callee.printed())")
         }
@@ -418,8 +425,330 @@ final class LispInterpreter {
             }
             return result
 
+        case "class":
+            // (class 名前) → クラスオブジェクトを返す
+            guard args.count == 1, case .symbol(let className) = args[0] else {
+                throw LispError("class: (class 名前) の形式で指定してください")
+            }
+            guard case .classObject? = globals.lookup(className) else {
+                throw LispError("class: 未定義のクラスです: \(className)")
+            }
+            return globals.lookup(className)
+
+        case "defclass":
+            return try evalDefclass(args, in: env)
+
+        case "defgeneric":
+            return try evalDefgeneric(args)
+
+        case "defmethod":
+            return try evalDefmethod(args, in: env)
+
         default:
             return nil // 特殊形式ではない → 関数適用へ
+        }
+    }
+
+    // MARK: - ILOS(オブジェクトシステム)
+
+    /// (defclass 名前 (親...) ((スロット :initform 式 :initarg :key :accessor 名 :reader 名)...))
+    private func evalDefclass(_ args: [LispValue], in env: LispEnvironment) throws -> LispValue {
+        guard args.count >= 2, case .symbol(let className) = args[0] else {
+            throw LispError("defclass: (defclass 名前 (親...) (スロット...)) の形式で指定してください")
+        }
+        guard let superForms = args[1].toArray() else {
+            throw LispError("defclass: 親クラスのリストが不正です")
+        }
+        let supers = try superForms.map { form -> LispClass in
+            guard case .symbol(let superName) = form else {
+                throw LispError("defclass: 親クラス名が不正です")
+            }
+            guard case .classObject(let cls)? = globals.lookup(superName) else {
+                throw LispError("defclass: 未定義の親クラスです: \(superName)")
+            }
+            return cls
+        }
+
+        var slots: [LispSlotSpec] = []
+        if args.count >= 3, let slotForms = args[2].toArray() {
+            for slotForm in slotForms {
+                slots.append(try parseSlotSpec(slotForm))
+            }
+        }
+
+        let newClass = LispClass(name: className, directSuperclasses: supers, directSlots: slots)
+        try newClass.finalize()
+        globals.define(className, .classObject(newClass))
+
+        // アクセサ(:accessor / :reader)を総称関数として定義する
+        for slot in newClass.allSlots {
+            if let accessor = slot.accessor {
+                defineSlotReader(accessor, slot: slot.name, on: newClass)
+                defineSlotWriter("set-" + accessor, slot: slot.name, on: newClass)
+            }
+            if let reader = slot.reader {
+                defineSlotReader(reader, slot: slot.name, on: newClass)
+            }
+        }
+        return .symbol(className)
+    }
+
+    private func parseSlotSpec(_ form: LispValue) throws -> LispSlotSpec {
+        // スロットは (名前 :option 値 ...) または 名前 のどちらか
+        if case .symbol(let name) = form {
+            return LispSlotSpec(name: name, initform: nil, initarg: nil, accessor: nil, reader: nil)
+        }
+        guard let parts = form.toArray(), let first = parts.first,
+              case .symbol(let name) = first else {
+            throw LispError("defclass: スロット定義が不正です")
+        }
+        var initform: LispValue?
+        var initarg: String?
+        var accessor: String?
+        var reader: String?
+        var index = 1
+        while index + 1 < parts.count + 1, index < parts.count {
+            guard case .symbol(let option) = parts[index], index + 1 < parts.count else {
+                throw LispError("defclass: スロットオプションが不正です: \(name)")
+            }
+            let value = parts[index + 1]
+            switch option {
+            case ":initform": initform = value
+            case ":initarg":
+                if case .symbol(let key) = value { initarg = key }
+                else { throw LispError("defclass: :initarg にはキーワードが必要です") }
+            case ":accessor":
+                if case .symbol(let fn) = value { accessor = fn }
+                else { throw LispError("defclass: :accessor には名前が必要です") }
+            case ":reader":
+                if case .symbol(let fn) = value { reader = fn }
+                else { throw LispError("defclass: :reader には名前が必要です") }
+            default:
+                throw LispError("defclass: 未対応のスロットオプションです: \(option)")
+            }
+            index += 2
+        }
+        return LispSlotSpec(name: name, initform: initform, initarg: initarg, accessor: accessor, reader: reader)
+    }
+
+    private func defineSlotReader(_ name: String, slot: String, on cls: LispClass) {
+        let generic = ensureGeneric(name)
+        let reader = LispBuiltin(name) { args, _ in
+            guard case .instance(let obj) = args.first else {
+                throw LispError("\(name): インスタンスが必要です")
+            }
+            guard let value = obj.slots[slot] else {
+                throw LispError("\(name): スロット \(slot) は未束縛です")
+            }
+            return value
+        }
+        generic.addMethod(LispMethod(
+            qualifier: .primary, specializer: cls,
+            function: LispFunction(name: name, parameters: ["self"], restParameter: nil,
+                                   body: [], closure: globals, builtinBody: reader)
+        ))
+    }
+
+    private func defineSlotWriter(_ name: String, slot: String, on cls: LispClass) {
+        let generic = ensureGeneric(name)
+        let writer = LispBuiltin(name) { args, _ in
+            guard args.count == 2, case .instance(let obj) = args[0] else {
+                throw LispError("\(name): (\(name) インスタンス 値) の形式で指定してください")
+            }
+            obj.slots[slot] = args[1]
+            return args[1]
+        }
+        generic.addMethod(LispMethod(
+            qualifier: .primary, specializer: cls,
+            function: LispFunction(name: name, parameters: ["self", "value"], restParameter: nil,
+                                   body: [], closure: globals, builtinBody: writer)
+        ))
+    }
+
+    private func ensureGeneric(_ name: String) -> LispGeneric {
+        if case .generic(let existing)? = globals.lookup(name) {
+            return existing
+        }
+        let generic = LispGeneric(name: name)
+        globals.define(name, .generic(generic))
+        return generic
+    }
+
+    /// (defgeneric 名前 (引数...))
+    private func evalDefgeneric(_ args: [LispValue]) throws -> LispValue {
+        guard case .symbol(let name)? = args.first else {
+            throw LispError("defgeneric: 名前が必要です")
+        }
+        _ = ensureGeneric(name)
+        return .symbol(name)
+    }
+
+    /// (defmethod 名前 [修飾子] ((引数 クラス) 引数...) 本体...)
+    private func evalDefmethod(_ args: [LispValue], in env: LispEnvironment) throws -> LispValue {
+        guard case .symbol(let name)? = args.first else {
+            throw LispError("defmethod: 名前が必要です")
+        }
+        var index = 1
+        var qualifier: LispMethod.Qualifier = .primary
+        if index < args.count, case .symbol(let q) = args[index] {
+            switch q {
+            case ":before": qualifier = .before; index += 1
+            case ":after": qualifier = .after; index += 1
+            case ":around": qualifier = .around; index += 1
+            default: break
+            }
+        }
+        guard index < args.count, let paramForms = args[index].toArray(), !paramForms.isEmpty else {
+            throw LispError("defmethod: 引数リストが不正です")
+        }
+        index += 1
+
+        // 第 1 引数の (変数 クラス) からスペシャライザを取り出す
+        var params: [String] = []
+        var specializer: LispClass?
+        for (position, paramForm) in paramForms.enumerated() {
+            if case .symbol(let paramName) = paramForm {
+                params.append(paramName)
+            } else if let pair = paramForm.toArray(), pair.count == 2,
+                      case .symbol(let paramName) = pair[0],
+                      case .symbol(let clsName) = pair[1] {
+                params.append(paramName)
+                if position == 0 {
+                    guard case .classObject(let cls)? = globals.lookup(clsName) else {
+                        throw LispError("defmethod: 未定義のクラスです: \(clsName)")
+                    }
+                    specializer = cls
+                }
+            } else {
+                throw LispError("defmethod: 引数指定が不正です")
+            }
+        }
+        guard let cls = specializer else {
+            throw LispError("defmethod: 第1引数に (変数 クラス) の指定が必要です")
+        }
+
+        let generic = ensureGeneric(name)
+        let function = LispFunction(
+            name: name, parameters: params, restParameter: nil,
+            body: Array(args.dropFirst(index)), closure: env
+        )
+        generic.addMethod(LispMethod(qualifier: qualifier, specializer: cls, function: function))
+        return .symbol(name)
+    }
+
+    /// 総称関数の呼び出し。第 1 引数のクラスで適用メソッドを選び、
+    /// :around → :before → primary(+ call-next-method)→ :after の順で結合する。
+    func applyGeneric(_ generic: LispGeneric, _ args: [LispValue]) throws -> LispValue {
+        guard let receiver = args.first else {
+            throw LispError("\(generic.name): 引数が必要です")
+        }
+        let receiverClass = try classOf(receiver)
+
+        // 適用可能メソッドを優先順位(継承の近い順)で並べる
+        func applicable(_ qualifier: LispMethod.Qualifier) -> [LispMethod] {
+            let matched = generic.methods.filter {
+                $0.qualifier == qualifier && receiverClass.isSubclass(of: $0.specializer)
+            }
+            return matched.sorted { a, b in
+                precedenceIndex(receiverClass, a.specializer) < precedenceIndex(receiverClass, b.specializer)
+            }
+        }
+
+        let arounds = applicable(.around)
+        let befores = applicable(.before)
+        let afters = applicable(.after).reversed().map { $0 } // 最も特定的なものを後に
+        let primaries = applicable(.primary)
+
+        // primary チェーン(call-next-method で次を呼ぶ)
+        func invokePrimaryChain(_ remaining: [LispMethod]) throws -> LispValue {
+            guard let method = remaining.first else {
+                throw LispError("\(generic.name): 適用できるメソッドがありません")
+            }
+            return try invoke(method.function, args, nextMethods: Array(remaining.dropFirst()),
+                              generic: generic, allArgs: args)
+        }
+
+        // effective method: around がなければ before → primary → after
+        func core() throws -> LispValue {
+            for method in befores {
+                _ = try invoke(method.function, args, nextMethods: [], generic: generic, allArgs: args)
+            }
+            let result = try invokePrimaryChain(primaries)
+            for method in afters {
+                _ = try invoke(method.function, args, nextMethods: [], generic: generic, allArgs: args)
+            }
+            return result
+        }
+
+        if arounds.isEmpty {
+            return try core()
+        }
+        // around チェーン: call-next-method で次の around、最後に core を呼ぶ
+        func invokeAroundChain(_ remaining: [LispMethod]) throws -> LispValue {
+            guard let method = remaining.first else {
+                return try core()
+            }
+            return try invoke(
+                method.function, args, nextMethods: [], generic: generic, allArgs: args,
+                nextThunk: { try invokeAroundChain(Array(remaining.dropFirst())) }
+            )
+        }
+        return try invokeAroundChain(arounds)
+    }
+
+    /// メソッド本体を呼ぶ。call-next-method / next-method-p を環境に束縛する。
+    private func invoke(
+        _ function: LispFunction,
+        _ args: [LispValue],
+        nextMethods: [LispMethod],
+        generic: LispGeneric,
+        allArgs: [LispValue],
+        nextThunk: (() throws -> LispValue)? = nil
+    ) throws -> LispValue {
+        // builtin(アクセサ)ならそのまま
+        if let builtin = function.builtinBody {
+            return try builtin.body(args, self)
+        }
+
+        let env = LispEnvironment(parent: function.closure)
+        for (name, value) in zip(function.parameters, args) {
+            env.define(name, value)
+        }
+
+        let hasNext = !nextMethods.isEmpty || nextThunk != nil
+        env.define("call-next-method", .builtin(LispBuiltin("call-next-method") { [weak self] callArgs, _ in
+            guard let self else { return .nilValue }
+            let forwardArgs = callArgs.isEmpty ? args : callArgs
+            if let nextThunk { return try nextThunk() }
+            guard let next = nextMethods.first else {
+                throw LispError("call-next-method: 次のメソッドがありません")
+            }
+            return try self.invoke(next.function, forwardArgs,
+                                   nextMethods: Array(nextMethods.dropFirst()),
+                                   generic: generic, allArgs: allArgs)
+        }))
+        env.define("next-method-p", .builtin(LispBuiltin("next-method-p") { _, _ in
+            hasNext ? .t : .nilValue
+        }))
+
+        var result = LispValue.nilValue
+        for form in function.body {
+            result = try eval(form, in: env)
+        }
+        return result
+    }
+
+    private func precedenceIndex(_ cls: LispClass, _ target: LispClass) -> Int {
+        cls.precedenceList.firstIndex { $0 === target } ?? Int.max
+    }
+
+    /// 値のクラス(組み込み型は擬似クラスを返す)
+    func classOf(_ value: LispValue) throws -> LispClass {
+        switch value {
+        case .instance(let obj):
+            return obj.isa
+        default:
+            throw LispError("総称関数の第1引数はインスタンスである必要があります: \(value.printed())")
         }
     }
 
