@@ -1,6 +1,24 @@
 import SwiftUI
 import UIKit
 
+/// 折り返し OFF 時の横スクロールに対応した UITextView。
+/// TextKit 2 はコンテンツ幅を自動計算しないため、外部で測った幅を
+/// contentSize に強制する(UITextView 自身の再計算で上書きされないよう setter で守る)。
+final class WrapAwareTextView: UITextView {
+    var horizontalContentWidth: CGFloat = 0
+
+    override var contentSize: CGSize {
+        get { super.contentSize }
+        set {
+            var size = newValue
+            if horizontalContentWidth > 0 {
+                size.width = max(size.width, horizontalContentWidth)
+            }
+            super.contentSize = size
+        }
+    }
+}
+
 /// エディタ本体。TextKit 2 で動作する UITextView のラッパー。
 /// 注意: `layoutManager` にアクセスすると TextKit 1 にフォールバックするため、
 /// レイアウト操作は必ず `textLayoutManager` 経由で行うこと。
@@ -11,6 +29,7 @@ struct TextView: UIViewRepresentable {
     var indentUsesSpaces: Bool = true
     var indentWidth: Int = 4
     var focusMode: Bool = false
+    var wordWrap: Bool = true
     var selectionCount: Binding<Int>?
     var proxy: TextViewProxy?
 
@@ -21,7 +40,7 @@ struct TextView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView(usingTextLayoutManager: true)
+        let textView = WrapAwareTextView(usingTextLayoutManager: true)
         textView.delegate = context.coordinator
         textView.font = baseFont
         textView.isFindInteractionEnabled = true
@@ -49,6 +68,12 @@ struct TextView: UIViewRepresentable {
             }
         }
 
+        if !wordWrap {
+            Self.applyWordWrap(false, to: textView)
+            DispatchQueue.main.async {
+                context.coordinator.updateHorizontalContentSize(textView)
+            }
+        }
         context.coordinator.applyHighlightIfNeeded(to: textView)
         return textView
     }
@@ -60,6 +85,18 @@ struct TextView: UIViewRepresentable {
 
         if focusChanged {
             context.coordinator.refreshHighlight(textView)
+        }
+        // UITextView がレイアウト時にコンテナ設定を戻すことがあるため、
+        // 変更検知ではなく実際のコンテナ状態と突き合わせて自己修復する
+        let container = textView.textContainer
+        let containerMismatched = wordWrap
+            ? !container.widthTracksTextView
+            : (container.widthTracksTextView
+                || container.size.width < CGFloat.greatestFiniteMagnitude / 2)
+        if containerMismatched {
+            Self.applyWordWrap(wordWrap, to: textView)
+            context.coordinator.updateHorizontalContentSize(textView)
+            context.coordinator.gutter?.synchronize()
         }
 
         // 入力のたびに再設定するとカーソル位置が失われるため、差分がある時のみ反映する
@@ -80,6 +117,24 @@ struct TextView: UIViewRepresentable {
         Coordinator(parent: self)
     }
 
+    /// 折り返し OFF ではテキストコンテナの幅を無制限にして横スクロールで表示する
+    static func applyWordWrap(_ wrap: Bool, to textView: UITextView) {
+        let container = textView.textContainer
+        if wrap {
+            container.widthTracksTextView = true
+            container.size = CGSize(
+                width: textView.bounds.width,
+                height: CGFloat.greatestFiniteMagnitude
+            )
+        } else {
+            container.widthTracksTextView = false
+            container.size = CGSize(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: CGFloat.greatestFiniteMagnitude
+            )
+        }
+    }
+
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: TextView
         var gutter: LineNumberGutterView?
@@ -95,8 +150,31 @@ struct TextView: UIViewRepresentable {
 
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text ?? ""
-            scheduleHighlight(for: textView)
+            scheduleDeferredLayoutWork(for: textView)
             gutter?.rebuildLineStarts(text: textView.text ?? "")
+        }
+
+        /// 折り返し OFF 時: 全行をレイアウトして実際の使用幅を測り、
+        /// 横スクロールできるように contentSize の幅を確定する
+        func updateHorizontalContentSize(_ textView: UITextView) {
+            guard let wrapAware = textView as? WrapAwareTextView else { return }
+            if parent.wordWrap {
+                wrapAware.horizontalContentWidth = 0
+                textView.contentSize.width = textView.bounds.width
+                return
+            }
+            guard let layoutManager = textView.textLayoutManager,
+                  (textView.text ?? "").utf16.count <= Self.highlightLengthLimit
+            else { return }
+
+            layoutManager.ensureLayout(for: layoutManager.documentRange)
+            let usage = layoutManager.usageBoundsForTextContainer
+            let width = ceil(usage.maxX)
+                + textView.textContainerInset.left
+                + textView.textContainerInset.right
+                + 24
+            wrapAware.horizontalContentWidth = max(width, textView.bounds.width)
+            textView.contentSize.width = wrapAware.horizontalContentWidth
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
@@ -229,12 +307,16 @@ struct TextView: UIViewRepresentable {
             highlight(textView)
         }
 
-        private func scheduleHighlight(for textView: UITextView) {
-            guard parent.mode != .plainText || parent.focusMode else { return }
+        private func scheduleDeferredLayoutWork(for textView: UITextView) {
+            let needsHighlight = parent.mode != .plainText || parent.focusMode
+            guard needsHighlight || !parent.wordWrap else { return }
             pendingHighlight?.cancel()
             let work = DispatchWorkItem { [weak self, weak textView] in
                 guard let self, let textView else { return }
-                self.highlight(textView)
+                if needsHighlight {
+                    self.highlight(textView)
+                }
+                self.updateHorizontalContentSize(textView)
             }
             pendingHighlight = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
