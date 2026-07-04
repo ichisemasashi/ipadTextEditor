@@ -28,6 +28,7 @@
 		72E136C8AC7B43EA2347B7B4 /* LispEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE97DCC7D6F0A5097D6A8B5 /* LispEnvironment.swift */; };
 		76218CAEB17B6AE081C78F68 /* LanguageDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80DF0786448A408D22894F2 /* LanguageDefinition.swift */; };
 		7A60F113A6F3E96FA2DA7F4B /* LineNumberGutterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A3A83692D5FEE6956FBA70 /* LineNumberGutterView.swift */; };
+		7F443E8E01100C2F166C256E /* LispPlatformAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0E5ADB94350E64ADC74FCC /* LispPlatformAPI.swift */; };
 		808682DD5EA1C4496966D24C /* MarkdownHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF44F87E03101D8124597A1E /* MarkdownHighlighterTests.swift */; };
 		80BDE5A18A1562850C0CAB5C /* IchiseEditApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19913D879598E9EC5E37292 /* IchiseEditApp.swift */; };
 		862605AA9DD91756C0B15652 /* TextStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9A43294BF32337EC479B497 /* TextStatisticsTests.swift */; };
@@ -72,6 +73,7 @@
 		4BAAE51CE7F5E05E073C0F64 /* DetailedTextStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedTextStatistics.swift; sourceTree = "<group>"; };
 		5A9A792F7392193B9B2560A7 /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		5AB1A4E7E81DEC68E842415E /* CodeAutoIndent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeAutoIndent.swift; sourceTree = "<group>"; };
+		5C0E5ADB94350E64ADC74FCC /* LispPlatformAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispPlatformAPI.swift; sourceTree = "<group>"; };
 		5CE97DCC7D6F0A5097D6A8B5 /* LispEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispEnvironment.swift; sourceTree = "<group>"; };
 		6DB7A72626192E7CE67AAD00 /* LispValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispValue.swift; sourceTree = "<group>"; };
 		73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispHaskellHighlighterTests.swift; sourceTree = "<group>"; };
@@ -138,6 +140,7 @@
 			isa = PBXGroup;
 			children = (
 				B168A6666F1254B29F0C2618 /* LispEditorAPI.swift */,
+				5C0E5ADB94350E64ADC74FCC /* LispPlatformAPI.swift */,
 				8EB3F27928DD171D09D65269 /* LispSystemAPI.swift */,
 				17AAA7C087E65D6CBE426F07 /* MacroEngine.swift */,
 				A5B989BDEAB72DC4C9EB9909 /* MacroREPLView.swift */,
@@ -378,6 +381,7 @@
 				72E136C8AC7B43EA2347B7B4 /* LispEnvironment.swift in Sources */,
 				5BA1DCA83510FFD311E84889 /* LispError.swift in Sources */,
 				0C4C06120D42E7DDB4C1332E /* LispInterpreter.swift in Sources */,
+				7F443E8E01100C2F166C256E /* LispPlatformAPI.swift in Sources */,
 				6AAE0751A57FA5BA1CC80A92 /* LispReader.swift in Sources */,
 				9CA1FC51A40B0CC701F808A6 /* LispSystemAPI.swift in Sources */,
 				4BF6F7C016E61FB0DCEE9147 /* LispValue.swift in Sources */,

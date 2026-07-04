@@ -30,6 +30,44 @@ private func onMain(_ body: @escaping () -> Void) {
     }
 }
 
+/// ドキュメントピッカーの結果を 1 回だけ受け取るデリゲート
+final class DocumentPickerCoordinator: NSObject, UIDocumentPickerDelegate {
+    private let onPick: (URL?) -> Void
+    private var finished = false
+
+    init(onPick: @escaping (URL?) -> Void) {
+        self.onPick = onPick
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        finish(urls.first)
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        finish(nil)
+    }
+
+    private func finish(_ url: URL?) {
+        guard !finished else { return }
+        finished = true
+        onPick(url)
+    }
+}
+
+private extension UITextView {
+    /// 共有シートのポップオーバー基点にする選択矩形(なければビュー中央)
+    func selectionRect() -> CGRect {
+        if let range = selectedTextRange {
+            let rects = selectionRects(for: range)
+            if let first = rects.first?.rect, first.width > 0 || first.height > 0 {
+                return first
+            }
+            return caretRect(for: range.end)
+        }
+        return CGRect(x: bounds.midX, y: bounds.midY, width: 1, height: 1)
+    }
+}
+
 /// マクロ機能の中核。Macros フォルダの .lsp を読み込み、
 /// define-command されたコマンドを保持・実行する(文書ごとに 1 つ)。
 /// API はメインスレッドから呼ぶこと。マクロ本体は専用スレッドで実行される。
@@ -52,6 +90,8 @@ final class MacroEngine: ObservableObject {
     private let macrosDirectory: URL
     private let filesDirectory: URL
     private var loaded = false
+    /// ピッカー表示中のデリゲート保持(閉じるまで生存させる)
+    private var pickerCoordinator: DocumentPickerCoordinator?
 
     /// マクロ実行スレッドのスタックサイズ。深度上限に達する前にスタックが
     /// 尽きないよう大きめに確保する(仮想メモリのため実際の使用分しかコミットされない)
@@ -220,6 +260,12 @@ final class MacroEngine: ObservableObject {
                 }
             }
         )
+        LispPlatformAPI.install(into: interpreter) { [weak self] request in
+            self?.handlePlatformRequest(request)
+        }
+        LispPlatformAPI.installPickers(into: interpreter) { [weak self] request in
+            self?.handlePlatformRequest(request)
+        }
         // (format t ...) の出力は REPL コンソールへ
         interpreter.output = { [weak self] text in
             onMain { self?.replLines.append(REPLLine(kind: .output, text: text)) }
@@ -246,6 +292,78 @@ final class MacroEngine: ObservableObject {
                 return .nilValue
             })
         )
+    }
+
+    /// テストが差し替えられるプラットフォーム連携ハンドラ(nil なら実 UI を提示)
+    var platformHandler: ((MacroPlatformRequest) -> Void)?
+
+    /// iPadOS 連携要求を UI として提示する(メインスレッドで呼ばれる)
+    private func handlePlatformRequest(_ request: MacroPlatformRequest) {
+        if let handler = platformHandler {
+            handler(request)
+            return
+        }
+        guard let textView = proxy?.textView,
+              var presenter = textView.window?.rootViewController else {
+            if case .pickFile(let completion) = request { completion(.nilValue) }
+            return
+        }
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+
+        switch request {
+        case .share(let text):
+            let vc = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+            vc.popoverPresentationController?.sourceView = textView
+            vc.popoverPresentationController?.sourceRect = textView.selectionRect()
+            presenter.present(vc, animated: true)
+
+        case .print(let text):
+            let controller = UIPrintInteractionController.shared
+            let info = UIPrintInfo(dictionary: nil)
+            info.outputType = .general
+            info.jobName = documentName()
+            controller.printInfo = info
+            let formatter = UISimpleTextPrintFormatter(text: text)
+            formatter.font = .systemFont(ofSize: 12)
+            controller.printFormatter = formatter
+            controller.present(animated: true)
+
+        case .dictionary(let word):
+            let vc = UIReferenceLibraryViewController(term: word)
+            presenter.present(vc, animated: true)
+
+        case .openURL(let url):
+            UIApplication.shared.open(url)
+
+        case .pickFile(let completion):
+            let picker = UIDocumentPickerViewController(
+                forOpeningContentTypes: [.text, .plainText, .sourceCode]
+            )
+            let coordinator = DocumentPickerCoordinator { url in
+                guard let url else {
+                    completion(.nilValue)
+                    return
+                }
+                let didAccess = url.startAccessingSecurityScopedResource()
+                defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+                if let text = try? String(contentsOf: url, encoding: .utf8) {
+                    completion(.string(text))
+                } else {
+                    completion(.nilValue)
+                }
+            }
+            picker.delegate = coordinator
+            pickerCoordinator = coordinator
+            presenter.present(picker, animated: true)
+
+        case .exportText(let filename, let text):
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try? text.write(to: url, atomically: true, encoding: .utf8)
+            let picker = UIDocumentPickerViewController(forExporting: [url])
+            presenter.present(picker, animated: true)
+        }
     }
 
     /// 既定のダイアログ実装(UIAlertController)。メインスレッドで呼ばれる
@@ -347,6 +465,19 @@ final class MacroEngine: ObservableObject {
 
         (define-selection-command "「」で囲む"
           (lambda (text) (string-append "「" text "」")))
+        """),
+        ("read-aloud.lsp", """
+        ;; 文書の内容を読み上げます(校正に便利)
+        (define-command "読み上げる"
+          (lambda () (speak (buffer-text))))
+
+        (define-command "読み上げを止める"
+          (lambda () (stop-speaking)))
+        """),
+        ("share-document.lsp", """
+        ;; 文書を他のアプリに共有します
+        (define-command "共有する"
+          (lambda () (share (buffer-text))))
         """),
     ]
 }
