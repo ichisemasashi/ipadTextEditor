@@ -338,6 +338,82 @@ enum LispBuiltins {
             return .symbol("#:g\(gensymCounter)")
         }
 
+        // MARK: ILOS(オブジェクトシステム)
+
+        define("create") { args, _ in
+            guard case .classObject(let cls) = args.first else {
+                throw LispError("create: (create (class 名前) :slot 値 ...) の形式で指定してください")
+            }
+            // :initarg → 値 の対応表を作る
+            var initargs: [String: LispValue] = [:]
+            var index = 1
+            while index + 1 < args.count + 1, index < args.count {
+                guard case .symbol(let key) = args[index], index + 1 < args.count else {
+                    throw LispError("create: 初期化引数が不正です")
+                }
+                initargs[key] = args[index + 1]
+                index += 2
+            }
+            // スロットを初期化(initarg 優先、なければ initform、それもなければ未束縛)
+            var slots: [String: LispValue] = [:]
+            for slot in cls.allSlots {
+                if let initarg = slot.initarg, let value = initargs[initarg] {
+                    slots[slot.name] = value
+                } else if let initform = slot.initform {
+                    slots[slot.name] = try interpreter.eval(initform, in: interpreter.globals)
+                }
+            }
+            return .instance(LispInstance(isa: cls, slots: slots))
+        }
+        define("instancep") { args, _ in
+            if case .instance = try single(args, "instancep") { return .t }
+            return .nilValue
+        }
+        define("class-of") { args, _ in
+            if case .instance(let obj) = try single(args, "class-of") {
+                return .classObject(obj.isa)
+            }
+            throw LispError("class-of: インスタンスが必要です")
+        }
+        define("subclassp") { args, _ in
+            guard args.count == 2,
+                  case .classObject(let a) = args[0],
+                  case .classObject(let b) = args[1] else {
+                throw LispError("subclassp: (subclassp クラス クラス) の形式で指定してください")
+            }
+            return a.isSubclass(of: b) ? .t : .nilValue
+        }
+        define("generic-function-p") { args, _ in
+            if case .generic = try single(args, "generic-function-p") { return .t }
+            return .nilValue
+        }
+        define("class-name") { args, _ in
+            if case .classObject(let cls) = try single(args, "class-name") {
+                return .symbol(cls.name)
+            }
+            throw LispError("class-name: クラスが必要です")
+        }
+        define("slot-value") { args, _ in
+            guard args.count == 2,
+                  case .instance(let obj) = args[0],
+                  case .symbol(let name) = args[1] else {
+                throw LispError("slot-value: (slot-value インスタンス 'スロット名) の形式で指定してください")
+            }
+            guard let value = obj.slots[name] else {
+                throw LispError("slot-value: スロット \(name) は未束縛です")
+            }
+            return value
+        }
+        define("set-slot-value") { args, _ in
+            guard args.count == 3,
+                  case .instance(let obj) = args[0],
+                  case .symbol(let name) = args[1] else {
+                throw LispError("set-slot-value: (set-slot-value インスタンス 'スロット名 値) の形式で指定してください")
+            }
+            obj.slots[name] = args[2]
+            return args[2]
+        }
+
         // MARK: テキスト処理ユーティリティ(マクロでの実用性のための拡張。ISO外)
 
         define("string-split") { args, _ in
