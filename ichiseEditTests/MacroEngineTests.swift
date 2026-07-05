@@ -146,6 +146,52 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertNil(engine.errorMessage)
     }
 
+    // MARK: - 標準コマンド(stdlib で定義。サンプルを消しても残る)
+
+    func testStandardCommandsExistWithEmptyMacrosFolder() throws {
+        // フォルダはあるがマクロファイルが 1 つもない(=サンプルを全部消した)状態
+        let (engine, _) = try makeEngine(text: "")
+        let names = engine.commands.map(\.name)
+        for expected in ["行をソート", "重複行を削除", "行末の空白を削除", "日付を挿入", "共有する"] {
+            XCTAssertTrue(names.contains(expected), "\(expected) がありません")
+        }
+        XCTAssertTrue(engine.selectionCommands.map(\.name).contains("大文字にする"))
+        // 重複登録がない
+        XCTAssertEqual(names.count, Set(names).count)
+    }
+
+    func testUserMacroOverridesStandardCommand() throws {
+        let (engine, view) = try makeEngine(
+            macroSources: ["my-sort.lsp": #"""
+            (define-command "行をソート"
+              (lambda () (set-buffer-text "上書きされた")))
+            """#],
+            text: "b\na"
+        )
+        // 同名は 1 つだけ(重複表示されない)
+        XCTAssertEqual(engine.commands.filter { $0.name == "行をソート" }.count, 1)
+        try runAndWait(engine, commandNamed: "行をソート")
+        XCTAssertEqual(view.text, "上書きされた")
+    }
+
+    func testSamplesWrittenOnlyOnFreshDirectory() throws {
+        // フォルダ未作成 → 初回にサンプルが配置される
+        let base = temporaryBase()
+        let macros = base.appendingPathComponent("Macros", isDirectory: true)
+        let engine = MacroEngine(directory: macros, filesDirectory: base)
+        engine.loadIfNeeded()
+        let written = try FileManager.default.contentsOfDirectory(atPath: macros.path)
+        XCTAssertFalse(written.isEmpty)
+
+        // ユーザーがサンプルを全削除 → 再読み込みしても復活しない(標準コマンドは残る)
+        for file in written {
+            try FileManager.default.removeItem(at: macros.appendingPathComponent(file))
+        }
+        engine.reload()
+        XCTAssertTrue((try FileManager.default.contentsOfDirectory(atPath: macros.path)).isEmpty)
+        XCTAssertTrue(engine.commands.map(\.name).contains("行をソート"))
+    }
+
     func testSampleSortLines() throws {
         let (engine, view) = try makeEngine(text: "banana\napple\ncherry")
         try runAndWait(engine, commandNamed: "行をソート")
