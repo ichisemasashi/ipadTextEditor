@@ -293,14 +293,15 @@ final class MacroEngine: ObservableObject {
             onMain { self?.replLines.append(REPLLine(kind: .output, text: text)) }
         }
 
-        // コマンド登録(要件 §5.5)
+        // コマンド登録(要件 §5.5)。同じ名前は後から定義したものが勝つ
+        // (ユーザーマクロは標準ライブラリの後に読み込まれるため、標準コマンドを上書きできる)
         interpreter.globals.define(
             "define-command",
             .builtin(LispBuiltin("define-command") { [weak self] args, _ in
                 guard args.count == 2, case .string(let name) = args[0] else {
                     throw LispError("define-command: (define-command \"名前\" 関数) の形式で指定してください")
                 }
-                onMain { self?.commands.append(MacroCommand(name: name, function: args[1])) }
+                onMain { self?.upsert(MacroCommand(name: name, function: args[1]), in: \.commands) }
                 return .nilValue
             })
         )
@@ -310,10 +311,22 @@ final class MacroEngine: ObservableObject {
                 guard args.count == 2, case .string(let name) = args[0] else {
                     throw LispError("define-selection-command: (define-selection-command \"名前\" 関数) の形式で指定してください")
                 }
-                onMain { self?.selectionCommands.append(MacroCommand(name: name, function: args[1])) }
+                onMain { self?.upsert(MacroCommand(name: name, function: args[1]), in: \.selectionCommands) }
                 return .nilValue
             })
         )
+    }
+
+    /// 同名コマンドがあれば位置を保ったまま置き換え、なければ末尾に追加する
+    private func upsert(
+        _ command: MacroCommand,
+        in keyPath: ReferenceWritableKeyPath<MacroEngine, [MacroCommand]>
+    ) {
+        if let index = self[keyPath: keyPath].firstIndex(where: { $0.name == command.name }) {
+            self[keyPath: keyPath][index] = command
+        } else {
+            self[keyPath: keyPath].append(command)
+        }
     }
 
     /// テストが差し替えられるプラットフォーム連携ハンドラ(nil なら実 UI を提示)
@@ -434,11 +447,13 @@ final class MacroEngine: ObservableObject {
 
     private func prepareDirectoryWithSamplesIfNeeded() {
         let fm = FileManager.default
+        // サンプルはフォルダの初回作成時にのみ配置する(書き方の見本)。
+        // コマンド本体は標準ライブラリ(stdlib.lsp)にあるため、
+        // サンプルを削除・改変してもコマンドは失われない
+        guard !fm.fileExists(atPath: macrosDirectory.path) else { return }
         try? fm.createDirectory(at: macrosDirectory, withIntermediateDirectories: true)
-        // 新しいバージョンで追加されたサンプルにも対応できるよう、ファイル単位で配置する
         for (fileName, source) in Self.sampleMacros {
             let url = macrosDirectory.appendingPathComponent(fileName)
-            guard !fm.fileExists(atPath: url.path) else { continue }
             try? source.write(to: url, atomically: true, encoding: .utf8)
         }
     }
