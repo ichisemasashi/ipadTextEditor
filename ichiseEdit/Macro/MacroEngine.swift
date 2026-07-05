@@ -443,43 +443,71 @@ final class MacroEngine: ObservableObject {
         _ request: MacroDialogRequest,
         _ completion: @escaping (LispValue) -> Void
     ) {
-        guard var presenter = proxy?.textView?.window?.rootViewController else {
-            completion(.nilValue)
-            return
-        }
-        while let presented = presenter.presentedViewController {
-            presenter = presented
-        }
-
+        let alert: UIAlertController
         switch request {
         case .alert(let message):
-            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { _ in
                 completion(.nilValue)
             })
-            presenter.present(alert, animated: true)
         case .confirm(let message):
-            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
                 completion(.nilValue)
             })
             alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { _ in
                 completion(.t)
             })
-            presenter.present(alert, animated: true)
         case .prompt(let message, let defaultText):
-            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-            alert.addTextField { field in
+            let promptAlert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            promptAlert.addTextField { field in
                 field.text = defaultText
             }
-            alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
+            promptAlert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
                 completion(.nilValue)
             })
-            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { [weak alert] _ in
-                completion(.string(alert?.textFields?.first?.text ?? ""))
+            promptAlert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { [weak promptAlert] _ in
+                completion(.string(promptAlert?.textFields?.first?.text ?? ""))
             })
-            presenter.present(alert, animated: true)
+            alert = promptAlert
         }
+        // 表示に失敗したときは completion を必ず呼ぶ(マクロスレッドがセマフォで
+        // 待っているため、呼ばないとマクロ全体が無反応になる)
+        presentAlertOnTop(alert, attemptsLeft: 40) {
+            completion(.nilValue)
+        }
+    }
+
+    /// アラートを最前面のビューコントローラに表示する。
+    /// 直前のダイアログの dismiss アニメーション中に present すると UIKit に
+    /// 拒否されるため(prompt を連続で使うマクロで発生)、最前面が安定するまで
+    /// 少し待ってから表示する。時間切れなら onFailure を呼ぶ
+    private func presentAlertOnTop(
+        _ alert: UIAlertController,
+        attemptsLeft: Int,
+        onFailure: @escaping () -> Void
+    ) {
+        guard attemptsLeft > 0, var presenter = proxy?.textView?.window?.rootViewController else {
+            onFailure()
+            return
+        }
+        while let presented = presenter.presentedViewController, !presented.isBeingDismissed {
+            presenter = presented
+        }
+        let ready = presenter.presentedViewController == nil
+            && !presenter.isBeingDismissed
+            && !presenter.isBeingPresented
+        guard ready else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                guard let self else {
+                    onFailure()
+                    return
+                }
+                self.presentAlertOnTop(alert, attemptsLeft: attemptsLeft - 1, onFailure: onFailure)
+            }
+            return
+        }
+        presenter.present(alert, animated: true)
     }
 
     private func prepareDirectoryWithSamplesIfNeeded() {

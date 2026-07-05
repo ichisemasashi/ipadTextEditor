@@ -85,16 +85,18 @@
             hits)
       (length hits))))
 
-;; dir 配下を再帰的に grep する。dir が "" ならファイルフォルダ全体。件数を返す
+;; dir 配下を再帰的に grep する。dir が "" ならファイルフォルダ全体。件数を返す。
+;; 読めないフォルダは黙ってスキップする
 (defun grep-directory (query dir)
-  (let ((total 0))
+  (let ((total 0)
+        (names (with-handler (lambda (condition) nil) (file-list dir))))
     (mapc
       (lambda (name)
         (let ((path (if (string= dir "") name (string-append dir "/" name))))
           (if (file-directory-p path)
               (setq total (+ total (grep-directory query path)))
               (setq total (+ total (grep-file query path))))))
-      (file-list dir))
+      names)
     total))
 
 ;; ------------------------------------------------------------
