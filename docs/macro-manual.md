@@ -162,6 +162,23 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
     (set-buffer-text (string-upcase (buffer-text)))))
 ```
 
+**キーボードショートカット**(外部キーボード用)も割り当てられます:
+
+```lisp
+(define-command "全部大文字に"
+  (lambda ()
+    (set-buffer-text (string-upcase (buffer-text))))
+  :shortcut "cmd+shift+u")
+```
+
+- 書式: 修飾キーを `+` でつなぎ、最後に 1 文字のキー
+- 修飾キー: `cmd`(command)/ `shift` / `alt`(option)/ `ctrl`(control)。
+  **cmd / ctrl / alt のいずれかが必須**です
+- メニューにショートカットが表示され、外部キーボードから直接実行できます
+- ⌘F(検索)など**アプリ既存のショートカットと重複させないよう注意**して
+  ください(重複した場合の動作は保証されません)
+- `define-selection-command` でも同じように指定できます
+
 ### 4.2 選択範囲クイック適用 — `define-selection-command`
 
 テキストを選択したときの編集メニュー(コピー/ペーストが並ぶメニュー)の

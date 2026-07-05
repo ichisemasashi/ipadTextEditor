@@ -337,6 +337,59 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertEqual(engine.replLines.last?.text, "=> 0")
     }
 
+    // MARK: - ショートカット割当(:shortcut)
+
+    func testShortcutParsing() throws {
+        let shortcut = try MacroShortcut.parse("cmd+shift+s")
+        XCTAssertEqual(shortcut.key, "s")
+        XCTAssertEqual(shortcut.modifiers, [.command, .shift])
+
+        let aliases = try MacroShortcut.parse("command+option+D")
+        XCTAssertEqual(aliases.key, "d")
+        XCTAssertEqual(aliases.modifiers, [.command, .option])
+
+        let control = try MacroShortcut.parse("ctrl+9")
+        XCTAssertEqual(control.key, "9")
+        XCTAssertEqual(control.modifiers, [.control])
+    }
+
+    func testShortcutParsingRejectsInvalidSpecs() {
+        XCTAssertThrowsError(try MacroShortcut.parse("s"))               // 修飾なし
+        XCTAssertThrowsError(try MacroShortcut.parse("shift+s"))         // shiftのみは不可
+        XCTAssertThrowsError(try MacroShortcut.parse("cmd+esc"))         // 複数文字キー
+        XCTAssertThrowsError(try MacroShortcut.parse("super+s"))         // 未知の修飾
+    }
+
+    func testDefineCommandWithShortcut() throws {
+        let (engine, view) = try makeEngine(
+            macroSources: ["s.lsp": #"""
+            (define-command "感嘆符"
+              (lambda () (set-buffer-text (string-append (buffer-text) "!")))
+              :shortcut "cmd+shift+1")
+            """#],
+            text: "abc"
+        )
+        guard let command = engine.commands.first(where: { $0.name == "感嘆符" }) else {
+            return XCTFail("コマンドが登録されていません")
+        }
+        XCTAssertEqual(command.shortcut?.key, "1")
+        XCTAssertEqual(command.shortcut?.modifiers, [.command, .shift])
+        // ショートカット付きでも実行は従来どおり
+        try runAndWait(engine, commandNamed: "感嘆符")
+        XCTAssertEqual(view.text, "abc!")
+    }
+
+    func testDefineCommandWithInvalidShortcutReportsLoadError() throws {
+        let (engine, _) = try makeEngine(
+            macroSources: ["bad.lsp": #"""
+            (define-command "だめ" (lambda () nil) :shortcut "s")
+            """#],
+            text: ""
+        )
+        XCTAssertTrue(engine.errorMessage?.contains("shortcut") == true)
+        XCTAssertFalse(engine.commands.contains { $0.name == "だめ" })
+    }
+
     // MARK: - 標準ライブラリ(stdlib.lsp)
 
     private func runFunctionAndWait(_ engine: MacroEngine, _ name: String) {
