@@ -66,6 +66,16 @@ enum LanguageRegistry {
         byExtension[ext.lowercased()]
     }
 
+    /// 文法の手動選択用: 重複を除いた全言語(表示名の昇順)
+    static var allLanguages: [LanguageDefinition] {
+        var seen = Set<String>()
+        var result: [LanguageDefinition] = []
+        for language in byExtension.values where seen.insert(language.name).inserted {
+            result.append(language)
+        }
+        return result.sorted { $0.name < $1.name }
+    }
+
     private static let cKeywords: Set<String> = [
         "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
         "else", "enum", "extern", "float", "for", "goto", "if", "int", "long", "register",

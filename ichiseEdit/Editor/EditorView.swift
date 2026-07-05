@@ -18,12 +18,13 @@ struct EditorView: View {
     @State private var showStatistics = false
     @State private var showREPL = false
     @State private var showManual = false
+    @State private var syntaxOverride: SyntaxChoice?
 
     private static let fontSizeRange: ClosedRange<Double> = 10...40
     private static let defaultFontSize: Double = 17
 
     private var mode: EditorMode {
-        EditorMode.mode(for: fileURL)
+        syntaxOverride?.mode ?? EditorMode.mode(for: fileURL)
     }
 
     var body: some View {
@@ -46,11 +47,9 @@ struct EditorView: View {
                     MarkdownPreviewView(text: document.text)
                 }
             }
-            if showREPL {
-                Divider()
-                MacroREPLView(engine: macroEngine)
-                    .frame(height: 240)
-            }
+            .ignoresSafeArea(.keyboard)
+            Divider()
+            statusBar
         }
         .overlay(alignment: .bottom) {
             if let toast = macroEngine.toastMessage {
@@ -68,9 +67,20 @@ struct EditorView: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             macroEngine.toastMessage = nil
         }
-        .ignoresSafeArea(.keyboard)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    proxy.undo()
+                } label: {
+                    Label("Undo", systemImage: "arrow.uturn.backward")
+                }
+
+                Button {
+                    proxy.redo()
+                } label: {
+                    Label("Redo", systemImage: "arrow.uturn.forward")
+                }
+
                 if mode.isMarkdown {
                     Button {
                         showPreview.toggle()
@@ -111,17 +121,14 @@ struct EditorView: View {
 
                 fontSizeMenu
             }
-            ToolbarItem(placement: .status) {
-                Button {
-                    showStatistics = true
-                } label: {
-                    statusText
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showStatistics) {
-                    StatisticsView(text: document.text)
-                }
-            }
+        }
+        .sheet(isPresented: $showStatistics) {
+            StatisticsView(text: document.text)
+                .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showREPL) {
+            MacroREPLView(engine: macroEngine)
+                .presentationDetents([.medium, .large])
         }
         .onAppear {
             macroEngine.proxy = proxy
@@ -155,18 +162,37 @@ struct EditorView: View {
         }
     }
 
+    /// エディタ下部に常設するステータスバー。タップで統計を表示する。
+    private var statusBar: some View {
+        Button {
+            showStatistics = true
+        } label: {
+            HStack(spacing: 0) {
+                statusText
+                Spacer(minLength: 8)
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(.bar)
+    }
+
     private var statusText: some View {
         var status = Text("\(statistics.characters) characters / \(statistics.lines) lines")
         if selectionCount > 0 {
             status = status + Text(verbatim: " · ") + Text("\(selectionCount) selected")
         }
-        if let language = mode.codeLanguage {
-            status = status + Text(verbatim: " · \(language.name)")
-        }
+        status = status + Text(verbatim: " · ") + Text(verbatim: SyntaxChoice.current(mode).displayName)
         return status
             .font(.caption)
             .foregroundStyle(.secondary)
             .monospacedDigit()
+            .lineLimit(1)
     }
 
     private var macroMenu: some View {
@@ -176,6 +202,18 @@ struct EditorView: View {
                     macroEngine.run(command)
                 }
                 .disabled(macroEngine.isRunning)
+            }
+            // 選択範囲コマンド(編集メニューにも出るが、見つけやすいようここにも置く)
+            if !macroEngine.selectionCommands.isEmpty {
+                Divider()
+                ForEach(macroEngine.selectionCommands) { command in
+                    Button {
+                        macroEngine.runSelection(command)
+                    } label: {
+                        Label(command.name, systemImage: "text.cursor")
+                    }
+                    .disabled(macroEngine.isRunning || selectionCount == 0)
+                }
             }
             if !macroEngine.commands.isEmpty {
                 Divider()
@@ -279,8 +317,37 @@ struct EditorView: View {
             Toggle(isOn: $wordWrap) {
                 Label("Wrap Lines", systemImage: "arrow.turn.down.left")
             }
+
+            syntaxMenu
         } label: {
             Label("Display", systemImage: "textformat.size")
         }
+    }
+
+    /// 拡張子に関わらずハイライトの文法を手動で切り替える
+    private var syntaxMenu: some View {
+        let current = SyntaxChoice.current(mode)
+        return Menu {
+            Picker("Syntax", selection: syntaxSelection) {
+                Label(SyntaxChoice.plainText.displayName, systemImage: "doc.plaintext")
+                    .tag(SyntaxChoice.plainText)
+                Label(SyntaxChoice.markdown.displayName, systemImage: "text.badge.checkmark")
+                    .tag(SyntaxChoice.markdown)
+                ForEach(LanguageRegistry.allLanguages, id: \.name) { language in
+                    Text(verbatim: language.name).tag(SyntaxChoice.code(language.name))
+                }
+            }
+        } label: {
+            Label("Syntax", systemImage: "chevron.left.forwardslash.chevron.right")
+            Text(verbatim: current.displayName)
+        }
+    }
+
+    /// 文法ピッカーの選択(選ぶと override を更新)
+    private var syntaxSelection: Binding<SyntaxChoice> {
+        Binding(
+            get: { SyntaxChoice.current(mode) },
+            set: { syntaxOverride = $0 }
+        )
     }
 }

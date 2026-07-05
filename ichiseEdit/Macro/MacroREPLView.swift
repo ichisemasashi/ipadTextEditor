@@ -1,12 +1,26 @@
 import SwiftUI
 
-/// ISLISP の式を対話的に評価する REPL コンソール(エディタ下部のパネル)。
+/// ISLISP の式を対話的に評価する REPL コンソール(シート表示)。
 struct MacroREPLView: View {
     @ObservedObject var engine: MacroEngine
+    @Environment(\.dismiss) private var dismiss
 
     @State private var input = ""
 
     var body: some View {
+        NavigationStack {
+            replBody
+                .navigationTitle("REPL")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                }
+        }
+    }
+
+    private var replBody: some View {
         VStack(spacing: 0) {
             ScrollViewReader { scroll in
                 ScrollView {
