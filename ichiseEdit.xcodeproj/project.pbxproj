@@ -13,6 +13,7 @@
 		0B4ABA10F93882D6F7FAEA75 /* TextViewProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1F0066CDE1C1277E21A7E5 /* TextViewProxy.swift */; };
 		0BDFE83C59A5CF49A519B47F /* CodeTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2CD297A2BEBCF124186484 /* CodeTheme.swift */; };
 		0C4C06120D42E7DDB4C1332E /* LispInterpreter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949DD6107EA51E364242B8C8 /* LispInterpreter.swift */; };
+		0E229C3E1D25F422C7177F5B /* MacroShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793CCD1467AE31CCB2F6D0E2 /* MacroShortcut.swift */; };
 		1604426C49CFAC04B1B292FC /* LispILOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C5CF2B99041355CBE2FF754 /* LispILOSTests.swift */; };
 		19D0F64D9EF218CE5556608A /* HelpDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 095D6D208DF6BFBAB79521CE /* HelpDocumentTests.swift */; };
 		1A202195BDAB1DDBBF544C31 /* DetailedTextStatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD08FCA1874CCC41CA2ED244 /* DetailedTextStatisticsTests.swift */; };
@@ -91,6 +92,7 @@
 		73AD83957E845DFB81B2CB8F /* LispHaskellHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispHaskellHighlighterTests.swift; sourceTree = "<group>"; };
 		74E8B86D1EDE50FCAC823E14 /* HelpDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpDocument.swift; sourceTree = "<group>"; };
 		768F249EFE4178CC7E135962 /* LispInterpreterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LispInterpreterTests.swift; sourceTree = "<group>"; };
+		793CCD1467AE31CCB2F6D0E2 /* MacroShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroShortcut.swift; sourceTree = "<group>"; };
 		8025901E07734B59816C7E63 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		858B0CEA349321EB830E53EE /* LatexHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatexHighlighterTests.swift; sourceTree = "<group>"; };
 		86A3A83692D5FEE6956FBA70 /* LineNumberGutterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberGutterView.swift; sourceTree = "<group>"; };
@@ -170,6 +172,7 @@
 				8EB3F27928DD171D09D65269 /* LispSystemAPI.swift */,
 				17AAA7C087E65D6CBE426F07 /* MacroEngine.swift */,
 				A5B989BDEAB72DC4C9EB9909 /* MacroREPLView.swift */,
+				793CCD1467AE31CCB2F6D0E2 /* MacroShortcut.swift */,
 			);
 			path = Macro;
 			sourceTree = "<group>";
@@ -430,6 +433,7 @@
 				4BF6F7C016E61FB0DCEE9147 /* LispValue.swift in Sources */,
 				C1830781870EEC03FC7AA0E1 /* MacroEngine.swift in Sources */,
 				E8F49ECB75EE0050058EA731 /* MacroREPLView.swift in Sources */,
+				0E229C3E1D25F422C7177F5B /* MacroShortcut.swift in Sources */,
 				351DA8343750C4D2A4B2D694 /* ManualView.swift in Sources */,
 				D3FD661B45FE4C1026A43773 /* MarkdownHighlighter.swift in Sources */,
 				514C31469EA5301B53C9D7EA /* MarkdownListContinuation.swift in Sources */,

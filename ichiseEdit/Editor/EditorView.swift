@@ -201,6 +201,7 @@ struct EditorView: View {
                 Button(command.name) {
                     macroEngine.run(command)
                 }
+                .keyboardShortcut(command.shortcut?.keyboardShortcut)
                 .disabled(macroEngine.isRunning)
             }
             // 選択範囲コマンド(編集メニューにも出るが、見つけやすいようここにも置く)
@@ -212,6 +213,7 @@ struct EditorView: View {
                     } label: {
                         Label(command.name, systemImage: "text.cursor")
                     }
+                    .keyboardShortcut(command.shortcut?.keyboardShortcut)
                     .disabled(macroEngine.isRunning || selectionCount == 0)
                 }
             }

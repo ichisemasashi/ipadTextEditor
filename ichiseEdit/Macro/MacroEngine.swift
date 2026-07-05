@@ -6,6 +6,7 @@ struct MacroCommand: Identifiable {
     let id = UUID()
     let name: String
     let function: LispValue
+    var shortcut: MacroShortcut?
 }
 
 /// REPL コンソールの 1 行
@@ -298,23 +299,57 @@ final class MacroEngine: ObservableObject {
         interpreter.globals.define(
             "define-command",
             .builtin(LispBuiltin("define-command") { [weak self] args, _ in
-                guard args.count == 2, case .string(let name) = args[0] else {
-                    throw LispError("define-command: (define-command \"名前\" 関数) の形式で指定してください")
+                guard args.count >= 2, case .string(let name) = args[0] else {
+                    throw LispError("define-command: (define-command \"名前\" 関数ほか :shortcut \"cmd+shift+s\") の形式で指定してください")
                 }
-                onMain { self?.upsert(MacroCommand(name: name, function: args[1]), in: \.commands) }
+                let shortcut = try Self.parseCommandOptions(args, name: "define-command")
+                onMain {
+                    self?.upsert(
+                        MacroCommand(name: name, function: args[1], shortcut: shortcut),
+                        in: \.commands
+                    )
+                }
                 return .nilValue
             })
         )
         interpreter.globals.define(
             "define-selection-command",
             .builtin(LispBuiltin("define-selection-command") { [weak self] args, _ in
-                guard args.count == 2, case .string(let name) = args[0] else {
-                    throw LispError("define-selection-command: (define-selection-command \"名前\" 関数) の形式で指定してください")
+                guard args.count >= 2, case .string(let name) = args[0] else {
+                    throw LispError("define-selection-command: (define-selection-command \"名前\" 関数ほか :shortcut \"cmd+shift+s\") の形式で指定してください")
                 }
-                onMain { self?.upsert(MacroCommand(name: name, function: args[1]), in: \.selectionCommands) }
+                let shortcut = try Self.parseCommandOptions(args, name: "define-selection-command")
+                onMain {
+                    self?.upsert(
+                        MacroCommand(name: name, function: args[1], shortcut: shortcut),
+                        in: \.selectionCommands
+                    )
+                }
                 return .nilValue
             })
         )
+    }
+
+    /// define-command 系の第 3 引数以降(:shortcut "cmd+shift+s" など)を解釈する
+    private static func parseCommandOptions(_ args: [LispValue], name: String) throws -> MacroShortcut? {
+        var shortcut: MacroShortcut?
+        var index = 2
+        while index < args.count {
+            guard case .symbol(let option) = args[index], index + 1 < args.count else {
+                throw LispError("\(name): オプションは :shortcut \"…\" の形式で指定してください")
+            }
+            switch option {
+            case ":shortcut":
+                guard case .string(let spec) = args[index + 1] else {
+                    throw LispError("\(name): :shortcut には文字列が必要です")
+                }
+                shortcut = try MacroShortcut.parse(spec)
+            default:
+                throw LispError("\(name): 未対応のオプションです: \(option)")
+            }
+            index += 2
+        }
+        return shortcut
     }
 
     /// 同名コマンドがあれば位置を保ったまま置き換え、なければ末尾に追加する
