@@ -85,8 +85,11 @@
             hits)
       (length hits))))
 
-;; dir 配下を再帰的に grep する。dir が "" ならファイルフォルダ全体。件数を返す。
-;; 読めないフォルダは黙ってスキップする
+;; dir 配下を再帰的に grep する。dir が "" ならアプリ専用フォルダ全体。件数を返す。
+;; 読めないフォルダは黙ってスキップする。
+;; 注意: file-* API はアプリ専用フォルダ(サンドボックス)に限定されるため、
+;; Files で開いた実ファイルは対象外。実ファイルの検索は grep(フォルダ再帰)
+;; コマンド(pick-folder-files でユーザーがフォルダを選択)を使うこと。
 (defun grep-directory (query dir)
   (let ((total 0)
         (names (with-handler (lambda (condition) nil) (file-list dir))))
@@ -97,6 +100,20 @@
               (setq total (+ total (grep-directory query path)))
               (setq total (+ total (grep-file query path))))))
       names)
+    total))
+
+;; ((パス . 内容) ...) のリストを grep し、ヒット行を REPL に出力する。件数を返す
+(defun grep-file-list (query files)
+  (let ((total 0))
+    (mapc
+      (lambda (entry)
+        (let ((path (car entry))
+              (hits (grep-lines (cdr entry) query)))
+          (mapc (lambda (hit)
+                  (format t "~A:~D: ~A~%" path (car hit) (cdr hit)))
+                hits)
+          (setq total (+ total (length hits)))))
+      files)
     total))
 
 ;; ------------------------------------------------------------
@@ -154,14 +171,15 @@
   (lambda ()
     (let ((query (prompt "検索する文字列" "")))
       (if (and query (not (string= query "")))
-          (let ((dir (prompt "フォルダ(空欄で全体)" "")))
-            (if dir
+          ;; ユーザーがフォルダを選択(サンドボックスの外の実ファイルを検索するため)。
+          ;; 配下のテキストファイルを再帰的に読み込んで grep する
+          (let ((files (pick-folder-files)))
+            (if files
                 (progn
-                  (format t "── grep ~S(~A 配下)──~%"
-                          query (if (string= dir "") "ichiseEdit" dir))
+                  (format t "── grep ~S(選択フォルダ配下)──~%" query)
                   (message (format nil "~D件見つかりました(REPLに表示)"
-                                   (grep-directory query dir))))
-                nil))
+                                   (grep-file-list query files))))
+                (message "フォルダが選択されなかったか、対象ファイルがありません")))
           nil))))
 
 ;; テキスト選択中の編集メニュー「マクロ」とハンマーメニューに表示される

@@ -378,6 +378,7 @@ final class MacroEngine: ObservableObject {
         guard let textView = proxy?.textView,
               var presenter = textView.window?.rootViewController else {
             if case .pickFile(let completion) = request { completion(.nilValue) }
+            if case .pickFolderFiles(let completion) = request { completion(.nilValue) }
             return
         }
         while let presented = presenter.presentedViewController {
@@ -428,14 +429,75 @@ final class MacroEngine: ObservableObject {
             }
             picker.delegate = coordinator
             pickerCoordinator = coordinator
-            presenter.present(picker, animated: true)
+            // prompt ダイアログの直後に開くことがあるため安定表示を待つ
+            presentWhenReady(picker, attemptsLeft: 40, configure: nil) {
+                completion(.nilValue)
+            }
+
+        case .pickFolderFiles(let completion):
+            let picker = UIDocumentPickerViewController(
+                forOpeningContentTypes: [.folder]
+            )
+            let coordinator = DocumentPickerCoordinator { url in
+                guard let url else {
+                    completion(.nilValue)
+                    return
+                }
+                completion(Self.readFolderFiles(url))
+            }
+            picker.delegate = coordinator
+            pickerCoordinator = coordinator
+            presentWhenReady(picker, attemptsLeft: 40, configure: nil) {
+                completion(.nilValue)
+            }
 
         case .exportText(let filename, let text):
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
             try? text.write(to: url, atomically: true, encoding: .utf8)
             let picker = UIDocumentPickerViewController(forExporting: [url])
-            presenter.present(picker, animated: true)
+            presentWhenReady(picker, attemptsLeft: 40, configure: nil) { }
         }
+    }
+
+    /// 選択されたフォルダ配下のテキストファイルを再帰的に読み込み、
+    /// ((相対パス . 内容) ...) の LispValue リストを返す。
+    /// UTF-8 で読めないファイル(バイナリ)と大きすぎるファイルはスキップする。
+    private static func readFolderFiles(_ folder: URL) -> LispValue {
+        let didAccess = folder.startAccessingSecurityScopedResource()
+        defer { if didAccess { folder.stopAccessingSecurityScopedResource() } }
+
+        let fm = FileManager.default
+        let maxFileSize = 5 * 1024 * 1024   // 1 ファイル 5MB まで
+        let maxFileCount = 5000             // 暴走防止の上限
+        let base = folder.standardizedFileURL
+        let basePath = base.path
+        var entries: [LispValue] = []
+
+        guard let enumerator = fm.enumerator(
+            at: base,
+            includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else {
+            return .nilValue
+        }
+
+        for case let fileURL as URL in enumerator {
+            if entries.count >= maxFileCount { break }
+            let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            guard values?.isRegularFile == true else { continue }
+            if let size = values?.fileSize, size > maxFileSize { continue }
+            guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else { continue }
+
+            // フォルダ名を先頭に付けた相対パス(例: "MyDocs/sub/a.txt")にする
+            let full = fileURL.standardizedFileURL.path
+            var relative = full
+            if full.hasPrefix(basePath + "/") {
+                relative = String(full.dropFirst(basePath.count + 1))
+            }
+            let label = base.lastPathComponent + "/" + relative
+            entries.append(.cons(.string(label), .string(text)))
+        }
+        return .list(entries)
     }
 
     /// 既定のダイアログ実装(UIAlertController)。メインスレッドで呼ばれる
@@ -473,18 +535,20 @@ final class MacroEngine: ObservableObject {
         }
         // 表示に失敗したときは completion を必ず呼ぶ(マクロスレッドがセマフォで
         // 待っているため、呼ばないとマクロ全体が無反応になる)
-        presentAlertOnTop(alert, attemptsLeft: 40) {
+        presentWhenReady(alert, attemptsLeft: 40, configure: nil) {
             completion(.nilValue)
         }
     }
 
-    /// アラートを最前面のビューコントローラに表示する。
+    /// ビューコントローラを最前面に表示する。
     /// 直前のダイアログの dismiss アニメーション中に present すると UIKit に
-    /// 拒否されるため(prompt を連続で使うマクロで発生)、最前面が安定するまで
-    /// 少し待ってから表示する。時間切れなら onFailure を呼ぶ
-    private func presentAlertOnTop(
-        _ alert: UIAlertController,
+    /// 拒否されるため(prompt とピッカーを連続で使うマクロで発生)、最前面が
+    /// 安定するまで少し待ってから表示する。時間切れなら onFailure を呼ぶ。
+    /// configure は present 直前に最終的な presenter を渡す(ポップオーバー基点設定用)
+    private func presentWhenReady(
+        _ controller: UIViewController,
         attemptsLeft: Int,
+        configure: ((UIViewController) -> Void)?,
         onFailure: @escaping () -> Void
     ) {
         guard attemptsLeft > 0, var presenter = proxy?.textView?.window?.rootViewController else {
@@ -503,11 +567,15 @@ final class MacroEngine: ObservableObject {
                     onFailure()
                     return
                 }
-                self.presentAlertOnTop(alert, attemptsLeft: attemptsLeft - 1, onFailure: onFailure)
+                self.presentWhenReady(
+                    controller, attemptsLeft: attemptsLeft - 1,
+                    configure: configure, onFailure: onFailure
+                )
             }
             return
         }
-        presenter.present(alert, animated: true)
+        configure?(presenter)
+        presenter.present(controller, animated: true)
     }
 
     private func prepareDirectoryWithSamplesIfNeeded() {

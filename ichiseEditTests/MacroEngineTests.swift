@@ -487,19 +487,49 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertTrue(engine.replLines.contains { $0.text == "d1/a.txt:1: hello" })
     }
 
-    func testGrepFolderCommandWithPrompts() throws {
+    func testGrepFileList() throws {
         let (engine, _) = try makeEngine(text: "")
-        repl(engine, #"(file-write "notes/x.txt" "TODO: 買い物")"#)
+        repl(engine, #"(grep-file-list "TODO" (list (cons "a.txt" "x\nTODO: 買い物") (cons "sub/b.txt" "TODO: 掃除")))"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 2")
+        XCTAssertTrue(engine.replLines.contains { $0.text == "a.txt:2: TODO: 買い物" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "sub/b.txt:1: TODO: 掃除" })
+    }
+
+    func testGrepFolderCommandPicksFolder() throws {
+        let (engine, _) = try makeEngine(text: "")
+        // 検索文字列プロンプトに応答
         engine.dialogPresenter = { request, completion in
-            if case .prompt(let message, _) = request {
-                completion(.string(message.contains("フォルダ") ? "" : "TODO"))
+            if case .prompt = request {
+                completion(.string("TODO"))
             } else {
                 completion(.nilValue)
             }
         }
+        // pick-folder-files をフォルダ選択のシミュレーションで差し替える
+        engine.platformHandler = { request in
+            if case .pickFolderFiles(let completion) = request {
+                completion(.list([
+                    .cons(.string("MyDocs/x.txt"), .string("TODO: 買い物\nメモ")),
+                    .cons(.string("MyDocs/sub/y.txt"), .string("done\nTODO: 掃除")),
+                ]))
+            }
+        }
         try runAndWait(engine, commandNamed: "grep(フォルダ再帰)")
-        XCTAssertTrue(engine.toastMessage?.contains("1件見つかりました") == true)
-        XCTAssertTrue(engine.replLines.contains { $0.text == "notes/x.txt:1: TODO: 買い物" })
+        XCTAssertTrue(engine.toastMessage?.contains("2件見つかりました") == true)
+        XCTAssertTrue(engine.replLines.contains { $0.text == "MyDocs/x.txt:1: TODO: 買い物" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "MyDocs/sub/y.txt:2: TODO: 掃除" })
+    }
+
+    func testGrepFolderCommandCancelled() throws {
+        let (engine, _) = try makeEngine(text: "")
+        engine.dialogPresenter = { request, completion in
+            if case .prompt = request { completion(.string("TODO")) } else { completion(.nilValue) }
+        }
+        engine.platformHandler = { request in
+            if case .pickFolderFiles(let completion) = request { completion(.nilValue) }
+        }
+        try runAndWait(engine, commandNamed: "grep(フォルダ再帰)")
+        XCTAssertTrue(engine.toastMessage?.contains("選択されなかった") == true)
     }
 
     // MARK: - M5: iPadOS 連携

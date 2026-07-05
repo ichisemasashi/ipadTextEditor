@@ -368,6 +368,7 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(print-text str)` | AirPrint で印刷 |
 | `(open-url str)` | URL を開く(`http(s)` / `mailto` のみ) |
 | `(pick-file)` | ファイル選択画面を出し、選ばれたテキストを返す(`nil` でキャンセル) |
+| `(pick-folder-files)` | フォルダ選択画面を出し、配下のテキストファイルを再帰的に読み込んで `((相対パス . 内容) ...)` を返す(`nil` でキャンセル) |
 | `(export-text filename str)` | 保存先を選んで書き出す |
 | `(haptic kind)` | 触覚。`kind` は `success` `warning` `error` `light` |
 
@@ -407,12 +408,23 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(md-heading)` `(md-bold)` `(md-italic)` `(md-code)` `(md-link)` | Markdown 記法の挿入コマンド |
 | `(grep-lines text query)` | query を含む行を `((行番号 . 行) ...)` で返す |
 | `(grep-buffer query)` | 現在の文書を検索し REPL に出力。件数を返す |
-| `(grep-file query path)` | 1 ファイルを検索し REPL に出力。件数を返す |
-| `(grep-directory query dir)` | dir 配下を**再帰的に**検索し REPL に出力。件数を返す(`""` で全体) |
+| `(grep-file-list query files)` | `((パス . 内容) ...)` を検索し REPL に出力。件数を返す |
+| `(grep-file query path)` | アプリ専用フォルダ内の 1 ファイルを検索し REPL に出力。件数を返す |
+| `(grep-directory query dir)` | アプリ専用フォルダ内の dir 配下を**再帰的に**検索。件数を返す(`""` で全体) |
 
 grep は固定文字列での行検索です。マクロメニューの
-「**grep(このファイル)**」「**grep(フォルダ再帰)**」からダイアログ入力で
-実行でき、結果は REPL コンソールに `パス:行番号: 行` の形式で表示されます。
+「**grep(このファイル)**」「**grep(フォルダ再帰)**」から実行でき、
+結果は REPL コンソールに `パス:行番号: 行` の形式で表示されます。
+
+- **grep(このファイル)**: 検索文字列を入力すると、編集中の文書を検索します。
+- **grep(フォルダ再帰)**: 検索文字列を入力したあと **フォルダ選択画面**が出ます。
+  選んだフォルダ配下のテキストファイルを再帰的に検索します。
+
+> iPad のセキュリティ上、`file-read` / `file-list` などの `file-*` API は
+> アプリ専用フォルダ(「この iPad 内/ichiseEdit」)の中だけにアクセスできます。
+> Files アプリで開いた iCloud Drive などの実ファイルはそこには無いため、
+> フォルダを横断して検索するときは `pick-folder-files`(ユーザーがフォルダを選択)を
+> 使います。`grep(フォルダ再帰)` コマンドはこの仕組みで動いています。
 
 ```lisp
 ;; 例: 選択範囲を〜〜で囲む取り消し線コマンドを自作
