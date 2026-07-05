@@ -331,6 +331,46 @@
         }
       }
     },
+    "Undo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消す"
+          }
+        }
+      }
+    },
+    "Redo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "やり直す"
+          }
+        }
+      }
+    },
+    "Syntax" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文法"
+          }
+        }
+      }
+    },
+    "Plain Text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレーンテキスト"
+          }
+        }
+      }
+    },
     "Tab Width" : {
       "localizations" : {
         "ja" : {

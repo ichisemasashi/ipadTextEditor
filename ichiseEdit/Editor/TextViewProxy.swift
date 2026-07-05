@@ -4,6 +4,15 @@ import UIKit
 final class TextViewProxy: ObservableObject {
     weak var textView: UITextView?
 
+    /// 取り消し/やり直し(ソフトウェアキーボードには ⌘Z がないため、ツールバーから使う)
+    func undo() {
+        textView?.undoManager?.undo()
+    }
+
+    func redo() {
+        textView?.undoManager?.redo()
+    }
+
     /// システム標準の検索(置換)パネルを表示する。
     func presentFindNavigator(showingReplace: Bool) {
         guard let textView else { return }
