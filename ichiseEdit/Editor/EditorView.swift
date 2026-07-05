@@ -253,36 +253,37 @@ struct EditorView: View {
         }
     }
 
+    /// Markdown 編集コマンド。実装は標準ライブラリ(stdlib.lsp)の ISLISP 関数
     private var markdownMenu: some View {
         Menu {
             Button {
-                proxy.insertAtLineStart("# ")
+                macroEngine.runFunction(named: "md-heading")
             } label: {
                 Label("Heading", systemImage: "number")
             }
 
             Button {
-                proxy.wrapSelection(prefix: "**", suffix: "**", placeholder: "text")
+                macroEngine.runFunction(named: "md-bold")
             } label: {
                 Label("Bold", systemImage: "bold")
             }
             .keyboardShortcut("b", modifiers: .command)
 
             Button {
-                proxy.wrapSelection(prefix: "*", suffix: "*", placeholder: "text")
+                macroEngine.runFunction(named: "md-italic")
             } label: {
                 Label("Italic", systemImage: "italic")
             }
             .keyboardShortcut("i", modifiers: .command)
 
             Button {
-                proxy.wrapSelection(prefix: "`", suffix: "`", placeholder: "code")
+                macroEngine.runFunction(named: "md-code")
             } label: {
                 Label("Code", systemImage: "chevron.left.forwardslash.chevron.right")
             }
 
             Button {
-                proxy.wrapSelection(prefix: "[", suffix: "](url)", placeholder: "title")
+                macroEngine.runFunction(named: "md-link")
             } label: {
                 Label("Link", systemImage: "link")
             }

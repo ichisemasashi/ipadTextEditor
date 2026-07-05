@@ -124,11 +124,22 @@ final class MacroEngine: ObservableObject {
         interpreter = LispInterpreter()
         installBuiltins()
         prepareDirectoryWithSamplesIfNeeded()
+        var loadErrors: [String] = []
+
+        // 標準ライブラリ(バンドル)をユーザーマクロより先に読み込む。
+        // Markdown 編集コマンドなど、アプリ標準機能の ISLISP 実装が含まれる
+        if let url = Bundle.main.url(forResource: "stdlib", withExtension: "lsp") {
+            do {
+                let source = try String(contentsOf: url, encoding: .utf8)
+                _ = try interpreter.run(source)
+            } catch {
+                loadErrors.append("stdlib.lsp: \(error)")
+            }
+        }
 
         let files = (try? FileManager.default.contentsOfDirectory(
             at: macrosDirectory, includingPropertiesForKeys: nil
         )) ?? []
-        var loadErrors: [String] = []
         for file in files.filter({ $0.pathExtension.lowercased() == "lsp" })
             .sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
             do {
@@ -147,6 +158,17 @@ final class MacroEngine: ObservableObject {
     func run(_ command: MacroCommand, completion: (() -> Void)? = nil) {
         execute(label: command.name, completion: completion) { interpreter in
             _ = try interpreter.apply(command.function, [])
+        }
+    }
+
+    /// 標準ライブラリ等で定義された関数を名前で実行する(Markdown メニュー等の UI から)。
+    /// 通常のコマンドと同じく 1 実行 = 1 Undo 単位で動く
+    func runFunction(named name: String, completion: (() -> Void)? = nil) {
+        execute(label: name, completion: completion) { interpreter in
+            guard let function = interpreter.globals.lookup(name) else {
+                throw LispError("未定義の関数です: \(name)")
+            }
+            _ = try interpreter.apply(function, [])
         }
     }
 
