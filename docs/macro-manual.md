@@ -278,6 +278,8 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(buffer-name)` | ファイル名 |
 | `(point)` | カーソル位置(文字位置) |
 | `(goto-char pos)` | カーソルを移動 |
+| `(line-start pos)` | pos を含む行の行頭位置 |
+| `(line-end pos)` | pos を含む行の行末位置(改行の手前) |
 | `(insert str)` | カーソル位置に挿入 |
 | `(delete-region start end)` | 範囲を削除 |
 | `(selection-start)` / `(selection-end)` | 選択範囲の開始/終了位置 |
@@ -364,7 +366,25 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 
 `format` の書式指定: `~A`(値)`~S`(引用付き)`~D`(整数)`~%`(改行)`~~`(`~`)。
 
-### 7.8 述語・制御・定義(抜粋)
+### 7.8 標準ライブラリの関数
+
+アプリに同梱の標準ライブラリ(stdlib.lsp)は **ISLISP で書かれており**、
+自分のマクロからそのまま呼べます。エディタの Markdown メニューも
+実はこれらの関数で動いています。
+
+| 関数 | 説明 |
+|---|---|
+| `(wrap-selection prefix suffix placeholder)` | 選択範囲を prefix/suffix で囲む。選択がなければ placeholder を挿入して選択状態にする |
+| `(insert-at-line-start str)` | 現在行の行頭に文字列を挿入(カーソル位置は維持) |
+| `(md-heading)` `(md-bold)` `(md-italic)` `(md-code)` `(md-link)` | Markdown 記法の挿入コマンド |
+
+```lisp
+;; 例: 選択範囲を〜〜で囲む取り消し線コマンドを自作
+(define-command "取り消し線"
+  (lambda () (wrap-selection "~~" "~~" "text")))
+```
+
+### 7.9 述語・制御・定義(抜粋)
 
 - 述語: `null not consp listp symbolp stringp numberp integerp characterp functionp eq eql equal`
 - 制御: `if cond case and or progn while for block return-from catch throw unwind-protect with-handler`

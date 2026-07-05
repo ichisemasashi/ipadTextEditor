@@ -41,6 +41,17 @@ final class LispEditorAPITests: XCTestCase {
         XCTAssertEqual(view.text, "👨‍👩‍👧‍👦Xう")
     }
 
+    func testLineStartAndEnd() throws {
+        let view = makeTextView("一行目\nab👨‍👩‍👧‍👦cd\n三行目")
+        let interpreter = makeInterpreter(view)
+        // 2 行目の途中(👨‍👩‍👧‍👦 の後 = 行内 3 文字目): 行頭 4、行末 9
+        XCTAssertEqual(try interpreter.run("(line-start 7)").printed(), "4")
+        XCTAssertEqual(try interpreter.run("(line-end 7)").printed(), "9")
+        // 先頭行
+        XCTAssertEqual(try interpreter.run("(line-start 2)").printed(), "0")
+        XCTAssertEqual(try interpreter.run("(line-end 2)").printed(), "3")
+    }
+
     func testInsertAndDelete() throws {
         let view = makeTextView("abc")
         let interpreter = makeInterpreter(view)
@@ -278,6 +289,62 @@ final class MacroEngineTests: XCTestCase {
         // メインスレッドの既定上限(800)を超える深さでも専用スレッドなら動く
         repl(engine, "(defun down (n) (if (= n 0) 0 (down (- n 1)))) (down 600)")
         XCTAssertEqual(engine.replLines.last?.text, "=> 0")
+    }
+
+    // MARK: - 標準ライブラリ(stdlib.lsp)
+
+    private func runFunctionAndWait(_ engine: MacroEngine, _ name: String) {
+        let done = expectation(description: "fn \(name)")
+        engine.runFunction(named: name) { done.fulfill() }
+        wait(for: [done], timeout: 10)
+    }
+
+    func testStdlibMarkdownBoldWrapsSelection() throws {
+        let (engine, view) = try makeEngine(text: "hello world")
+        view.selectedRange = NSRange(location: 0, length: 5)
+        runFunctionAndWait(engine, "md-bold")
+        XCTAssertEqual(view.text, "**hello** world")
+        XCTAssertNil(engine.errorMessage)
+        // 本文部分が選択し直されている
+        XCTAssertEqual(view.selectedRange, NSRange(location: 2, length: 5))
+    }
+
+    func testStdlibWrapSelectionWithoutSelectionInsertsPlaceholder() throws {
+        let (engine, view) = try makeEngine(text: "")
+        view.selectedRange = NSRange(location: 0, length: 0)
+        runFunctionAndWait(engine, "md-code")
+        XCTAssertEqual(view.text, "`code`")
+        XCTAssertEqual(view.selectedRange, NSRange(location: 1, length: 4))
+    }
+
+    func testStdlibHeadingInsertsAtLineStartKeepingCaret() throws {
+        let (engine, view) = try makeEngine(text: "一行目\n二行目")
+        // 2 行目の途中(「二行」の後 = 位置 6)にカーソル
+        view.selectedRange = NSRange(location: 6, length: 0)
+        runFunctionAndWait(engine, "md-heading")
+        XCTAssertEqual(view.text, "一行目\n# 二行目")
+        // カーソルは挿入分(2 文字)ずれた位置を維持
+        XCTAssertEqual(view.selectedRange, NSRange(location: 8, length: 0))
+    }
+
+    func testStdlibFunctionsAvailableToUserMacros() throws {
+        // ユーザーマクロから標準ライブラリの関数を呼べる
+        let (engine, view) = try makeEngine(
+            macroSources: ["u.lsp": #"""
+            (define-command "リンク化"
+              (lambda () (wrap-selection "[" "](url)" "title")))
+            """#],
+            text: "apple"
+        )
+        view.selectedRange = NSRange(location: 0, length: 5)
+        try runAndWait(engine, commandNamed: "リンク化")
+        XCTAssertEqual(view.text, "[apple](url)")
+    }
+
+    func testRunFunctionReportsUnknownName() throws {
+        let (engine, _) = try makeEngine(text: "")
+        runFunctionAndWait(engine, "no-such-function")
+        XCTAssertTrue(engine.errorMessage?.contains("no-such-function") == true)
     }
 
     // MARK: - M5: iPadOS 連携

@@ -139,6 +139,35 @@ enum LispEditorAPI {
             return .nilValue
         }
 
+        // MARK: 行の位置(Emacs の line-beginning/end-position に相当)
+
+        define("line-start") { args, _ in
+            guard args.count == 1, case .integer(let pos) = args[0] else {
+                throw LispError("line-start: 位置(整数)が必要です")
+            }
+            let view = try requireTextView()
+            let ns = (view.text ?? "") as NSString
+            var start = 0
+            ns.getLineStart(
+                &start, end: nil, contentsEnd: nil,
+                for: NSRange(location: try utf16Offset(view, character: pos), length: 0)
+            )
+            return .integer(characterOffset(view, utf16: start))
+        }
+        define("line-end") { args, _ in
+            guard args.count == 1, case .integer(let pos) = args[0] else {
+                throw LispError("line-end: 位置(整数)が必要です")
+            }
+            let view = try requireTextView()
+            let ns = (view.text ?? "") as NSString
+            var contentsEnd = 0
+            ns.getLineStart(
+                nil, end: nil, contentsEnd: &contentsEnd,
+                for: NSRange(location: try utf16Offset(view, character: pos), length: 0)
+            )
+            return .integer(characterOffset(view, utf16: contentsEnd))
+        }
+
         // MARK: 編集
 
         define("insert") { args, _ in
