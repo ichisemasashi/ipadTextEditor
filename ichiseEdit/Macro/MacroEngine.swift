@@ -291,7 +291,9 @@ final class MacroEngine: ObservableObject {
         }
         // (format t ...) の出力は REPL コンソールへ
         interpreter.output = { [weak self] text in
-            onMain { self?.replLines.append(REPLLine(kind: .output, text: text)) }
+            // REPL は 1 出力 = 1 行で表示するため、~% による末尾の改行 1 つは取り除く
+            let line = text.hasSuffix("\n") ? String(text.dropLast()) : text
+            onMain { self?.replLines.append(REPLLine(kind: .output, text: line)) }
         }
 
         // コマンド登録(要件 §5.5)。同じ名前は後から定義したものが勝つ

@@ -446,6 +446,62 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertTrue(engine.errorMessage?.contains("no-such-function") == true)
     }
 
+    // MARK: - grep(stdlib 実装)
+
+    func testFileDirectoryPredicate() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(file-write "sub/a.txt" "x")"#)
+        repl(engine, #"(file-directory-p "sub")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> t")
+        repl(engine, #"(file-directory-p "sub/a.txt")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+        repl(engine, #"(file-directory-p "nothing")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+    }
+
+    func testGrepLines() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(grep-lines "apple\nbanana\napricot" "ap")"#)
+        XCTAssertEqual(
+            engine.replLines.last?.text,
+            #"=> ((1 . "apple") (3 . "apricot"))"#
+        )
+    }
+
+    func testGrepBuffer() throws {
+        let (engine, _) = try makeEngine(text: "犬が走る\n猫が鳴く\n犬が吠える")
+        repl(engine, #"(grep-buffer "犬")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 2")
+        XCTAssertTrue(engine.replLines.contains { $0.text == "1: 犬が走る" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "3: 犬が吠える" })
+    }
+
+    func testGrepDirectoryRecursive() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(file-write "top.txt" "hello here")"#)
+        repl(engine, #"(file-write "d1/a.txt" "hello\nworld")"#)
+        repl(engine, #"(file-write "d1/d2/b.txt" "say hello")"#)
+        repl(engine, #"(grep-directory "hello" "")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 3")
+        XCTAssertTrue(engine.replLines.contains { $0.text == "d1/d2/b.txt:1: say hello" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "d1/a.txt:1: hello" })
+    }
+
+    func testGrepFolderCommandWithPrompts() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(file-write "notes/x.txt" "TODO: 買い物")"#)
+        engine.dialogPresenter = { request, completion in
+            if case .prompt(let message, _) = request {
+                completion(.string(message.contains("フォルダ") ? "" : "TODO"))
+            } else {
+                completion(.nilValue)
+            }
+        }
+        try runAndWait(engine, commandNamed: "grep(フォルダ再帰)")
+        XCTAssertTrue(engine.toastMessage?.contains("1件見つかりました") == true)
+        XCTAssertTrue(engine.replLines.contains { $0.text == "notes/x.txt:1: TODO: 買い物" })
+    }
+
     // MARK: - M5: iPadOS 連携
 
     func testSpellCheck() throws {

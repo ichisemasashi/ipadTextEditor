@@ -352,6 +352,7 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(file-write path str)` | テキストファイルを書く。途中のフォルダは自動作成 |
 | `(file-list &opt dir)` | ファイル名の一覧 |
 | `(file-exists-p path)` | 存在すれば `t` |
+| `(file-directory-p path)` | フォルダなら `t` |
 
 ### 7.6 iPadOS 連携
 
@@ -404,6 +405,14 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(wrap-selection prefix suffix placeholder)` | 選択範囲を prefix/suffix で囲む。選択がなければ placeholder を挿入して選択状態にする |
 | `(insert-at-line-start str)` | 現在行の行頭に文字列を挿入(カーソル位置は維持) |
 | `(md-heading)` `(md-bold)` `(md-italic)` `(md-code)` `(md-link)` | Markdown 記法の挿入コマンド |
+| `(grep-lines text query)` | query を含む行を `((行番号 . 行) ...)` で返す |
+| `(grep-buffer query)` | 現在の文書を検索し REPL に出力。件数を返す |
+| `(grep-file query path)` | 1 ファイルを検索し REPL に出力。件数を返す |
+| `(grep-directory query dir)` | dir 配下を**再帰的に**検索し REPL に出力。件数を返す(`""` で全体) |
+
+grep は固定文字列での行検索です。マクロメニューの
+「**grep(このファイル)**」「**grep(フォルダ再帰)**」からダイアログ入力で
+実行でき、結果は REPL コンソールに `パス:行番号: 行` の形式で表示されます。
 
 ```lisp
 ;; 例: 選択範囲を〜〜で囲む取り消し線コマンドを自作

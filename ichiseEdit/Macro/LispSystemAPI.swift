@@ -66,6 +66,12 @@ enum LispSystemAPI {
             let url = try resolve(try pathArgument(args, "file-exists-p"), base: filesDirectory)
             return FileManager.default.fileExists(atPath: url.path) ? .t : .nilValue
         }
+        define("file-directory-p") { args, _ in
+            let url = try resolve(try pathArgument(args, "file-directory-p"), base: filesDirectory)
+            var isDirectory: ObjCBool = false
+            let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+            return (exists && isDirectory.boolValue) ? .t : .nilValue
+        }
 
         // MARK: ダイアログ
 
