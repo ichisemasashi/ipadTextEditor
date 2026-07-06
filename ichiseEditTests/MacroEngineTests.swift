@@ -532,6 +532,74 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertTrue(engine.toastMessage?.contains("選択されなかった") == true)
     }
 
+    // MARK: - 正規表現
+
+    func testRegexMatchP() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-match-p "TODO|FIXME" "これは FIXME です")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> t")
+        repl(engine, #"(re-match-p "^#" "本文")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+        repl(engine, #"(re-match-p "\\d{3}" "電話は120番")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> t")
+    }
+
+    func testRegexMatchAndSearch() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-match "\\d+" "商品は税込1200円")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> "1200""#)
+        // Character 単位のオフセット(日本語混じりでもずれない)
+        repl(engine, #"(re-search "\\d+" "商品は税込1200円")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 5")
+        repl(engine, #"(re-search "zzz" "見つからない")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+    }
+
+    func testRegexReplaceString() throws {
+        let (engine, _) = try makeEngine(text: "")
+        // 後方参照($1 $2)を使った並べ替え
+        repl(engine, #"(re-replace "(\\w+)@(\\w+)" "$2の$1" "a@b と c@d")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> "bのa と dのc""#)
+    }
+
+    func testRegexSplit() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-split "[ ,]+" "赤, 緑,  青")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ("赤" "緑" "青")"#)
+    }
+
+    func testGrepUsesRegex() throws {
+        let (engine, _) = try makeEngine(text: "")
+        // grep-lines は (grep-lines テキスト 正規表現) の順
+        repl(engine, #"(grep-lines "ok\nTODO: 買う\nFIXME: 直す\nメモ" "TODO|FIXME")"#)
+        XCTAssertEqual(
+            engine.replLines.last?.text,
+            #"=> ((2 . "TODO: 買う") (3 . "FIXME: 直す"))"#
+        )
+    }
+
+    func testRegexReplaceCommand() throws {
+        let (engine, view) = try makeEngine(text: "cat and cat")
+        var prompts = 0
+        engine.dialogPresenter = { request, completion in
+            if case .prompt = request {
+                prompts += 1
+                completion(.string(prompts == 1 ? "cat" : "dog"))
+            } else {
+                completion(.nilValue)
+            }
+        }
+        try runAndWait(engine, commandNamed: "正規表現で置換")
+        XCTAssertEqual(view.text, "dog and dog")
+        XCTAssertTrue(engine.toastMessage?.contains("2件置換") == true)
+    }
+
+    func testRegexInvalidPatternErrors() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-match-p "[" "abc")"#)
+        XCTAssertTrue(engine.replLines.last?.text.contains("正規表現が不正") == true)
+    }
+
     // MARK: - M5: iPadOS 連携
 
     func testSpellCheck() throws {

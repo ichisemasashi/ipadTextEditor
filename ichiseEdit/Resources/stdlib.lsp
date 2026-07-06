@@ -49,17 +49,19 @@
   (wrap-selection "[" "](url)" "title"))
 
 ;; ------------------------------------------------------------
-;; grep(固定文字列の行検索)
+;; grep(正規表現による行検索)
 ;; ------------------------------------------------------------
 
-;; text の中から query を含む行を ((行番号 . 行) ...) のリストで返す
-(defun grep-lines (text query)
+;; text の中から正規表現 pattern にマッチする行を ((行番号 . 行) ...) で返す。
+;; pattern はそのまま正規表現として扱う(例: "TODO|FIXME" "^#" "\\d+")。
+;; 通常の単語("犬" など)を渡せばその単語を含む行に一致する。
+(defun grep-lines (text pattern)
   (let ((lines (string-split text "\n"))
         (n 0)
         (result nil))
     (while (consp lines)
       (setq n (+ n 1))
-      (if (string-index query (car lines))
+      (if (re-match-p pattern (car lines))
           (setq result (cons (cons n (car lines)) result))
           nil)
       (setq lines (cdr lines)))
@@ -161,7 +163,7 @@
 
 (define-command "grep(このファイル)"
   (lambda ()
-    (let ((query (prompt "検索する文字列" "")))
+    (let ((query (prompt "検索する正規表現" "")))
       (if (and query (not (string= query "")))
           (message (format nil "~D件見つかりました(REPLに表示)"
                            (grep-buffer query)))
@@ -169,7 +171,7 @@
 
 (define-command "grep(フォルダ再帰)"
   (lambda ()
-    (let ((query (prompt "検索する文字列" "")))
+    (let ((query (prompt "検索する正規表現" "")))
       (if (and query (not (string= query "")))
           ;; ユーザーがフォルダを選択(サンドボックスの外の実ファイルを検索するため)。
           ;; 配下のテキストファイルを再帰的に読み込んで grep する
@@ -180,6 +182,19 @@
                   (message (format nil "~D件見つかりました(REPLに表示)"
                                    (grep-file-list query files))))
                 (message "フォルダが選択されなかったか、対象ファイルがありません")))
+          nil))))
+
+;; 正規表現で文書全体を置換する。置換文字列では $1 $2 … で後方参照が使える
+;; (例: パターン "(\\w+)@(\\w+)" 置換 "$2 の $1")
+(define-command "正規表現で置換"
+  (lambda ()
+    (let ((pattern (prompt "検索する正規表現" "")))
+      (if (and pattern (not (string= pattern "")))
+          (let ((replacement (prompt "置換後の文字列($1で後方参照)" "")))
+            (if replacement
+                (message (format nil "~D件置換しました"
+                                 (re-replace-all pattern replacement)))
+                nil))
           nil))))
 
 ;; テキスト選択中の編集メニュー「マクロ」とハンマーメニューに表示される

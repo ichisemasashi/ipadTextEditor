@@ -464,6 +464,80 @@ enum LispBuiltins {
             let sorted = zip(numbers, items).sorted { $0.0 < $1.0 }.map(\.1)
             return .list(sorted)
         }
+
+        // MARK: 正規表現(NSRegularExpression ベース。文字列単位で動く)
+        //
+        // ^ と $ が各行の行頭・行末にもマッチするよう anchorsMatchLines を付ける
+        // (テキスト編集での実用性のため)。位置は他の文字列関数と同じ
+        // Character(書記素)単位で数える。
+
+        define("re-match-p") { args, _ in
+            let (pattern, target) = try twoStrings(args, "re-match-p")
+            let regex = try Self.compileRegex(pattern, "re-match-p")
+            let range = NSRange(location: 0, length: (target as NSString).length)
+            return regex.firstMatch(in: target, range: range) != nil ? .t : .nilValue
+        }
+        define("re-match") { args, _ in
+            guard args.count >= 2 else { throw LispError("re-match: 引数が足りません") }
+            let (pattern, target) = try twoStrings(Array(args.prefix(2)), "re-match")
+            let regex = try Self.compileRegex(pattern, "re-match")
+            let ns = target as NSString
+            let range = NSRange(location: 0, length: ns.length)
+            guard let match = regex.firstMatch(in: target, range: range) else { return .nilValue }
+            return .string(ns.substring(with: match.range))
+        }
+        define("re-search") { args, _ in
+            guard args.count >= 2 else { throw LispError("re-search: 引数が足りません") }
+            let (pattern, target) = try twoStrings(Array(args.prefix(2)), "re-search")
+            let regex = try Self.compileRegex(pattern, "re-search")
+            let chars = Array(target)
+            var start = 0
+            if args.count >= 3, case .integer(let s) = args[2] { start = s }
+            guard start >= 0, start <= chars.count else { return .nilValue }
+            let ns = target as NSString
+            // Character 単位の開始位置を UTF-16 オフセットへ変換
+            let startUTF16 = (String(chars.prefix(start)) as NSString).length
+            let range = NSRange(location: startUTF16, length: ns.length - startUTF16)
+            guard let match = regex.firstMatch(in: target, range: range) else { return .nilValue }
+            // マッチ開始の UTF-16 オフセットを Character 単位へ戻す
+            return .integer(ns.substring(to: match.range.location).count)
+        }
+        define("re-replace") { args, _ in
+            guard args.count == 3,
+                  case .string(let pattern) = args[0],
+                  case .string(let template) = args[1],
+                  case .string(let target) = args[2] else {
+                throw LispError("re-replace: (re-replace 正規表現 置換 文字列) の形式で指定してください")
+            }
+            let regex = try Self.compileRegex(pattern, "re-replace")
+            let ns = target as NSString
+            let range = NSRange(location: 0, length: ns.length)
+            let result = regex.stringByReplacingMatches(in: target, range: range, withTemplate: template)
+            return .string(result)
+        }
+        define("re-split") { args, _ in
+            let (pattern, target) = try twoStrings(args, "re-split")
+            let regex = try Self.compileRegex(pattern, "re-split")
+            let ns = target as NSString
+            let full = NSRange(location: 0, length: ns.length)
+            var pieces: [String] = []
+            var last = 0
+            regex.enumerateMatches(in: target, range: full) { match, _, _ in
+                guard let match = match, match.range.length > 0 else { return }
+                pieces.append(ns.substring(with: NSRange(location: last, length: match.range.location - last)))
+                last = match.range.location + match.range.length
+            }
+            pieces.append(ns.substring(from: last))
+            return .list(pieces.map { .string($0) })
+        }
+    }
+
+    /// 正規表現をコンパイルする。不正なら分かりやすいエラーを投げる
+    static func compileRegex(_ pattern: String, _ name: String) throws -> NSRegularExpression {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else {
+            throw LispError("\(name): 正規表現が不正です: \(pattern)")
+        }
+        return regex
     }
 
     // MARK: - convert(特殊形式から呼ばれる)
