@@ -35,6 +35,15 @@ final class DocExamplesTest: XCTestCase {
             """), "\"1. a\\n2. b\\n3. c\"")
     }
 
+    func testRegexExamples() throws {
+        // §7.7.1 の正規表現の例が動くこと
+        XCTAssertEqual(try run(#"(re-match-p "TODO|FIXME" "TODO: 買う")"#), "t")
+        XCTAssertEqual(try run(#"(re-match "\\d+" "税込1200円")"#), "\"1200\"")
+        XCTAssertEqual(try run(#"(re-search "\\d+" "税込1200円")"#), "2")
+        XCTAssertEqual(try run(#"(re-replace "(\\w+)@(\\w+)" "$2の$1" "a@b")"#), "\"bのa\"")
+        XCTAssertEqual(try run(#"(re-split "[ ,]+" "赤, 緑,  青")"#), "(\"赤\" \"緑\" \"青\")")
+    }
+
     func testILOSExample() throws {
         XCTAssertEqual(try run("""
             (defclass <person> ()

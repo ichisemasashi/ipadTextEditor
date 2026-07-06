@@ -352,6 +352,7 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(file-write path str)` | テキストファイルを書く。途中のフォルダは自動作成 |
 | `(file-list &opt dir)` | ファイル名の一覧 |
 | `(file-exists-p path)` | 存在すれば `t` |
+| `(file-directory-p path)` | フォルダなら `t` |
 
 ### 7.6 iPadOS 連携
 
@@ -367,6 +368,7 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(print-text str)` | AirPrint で印刷 |
 | `(open-url str)` | URL を開く(`http(s)` / `mailto` のみ) |
 | `(pick-file)` | ファイル選択画面を出し、選ばれたテキストを返す(`nil` でキャンセル) |
+| `(pick-folder-files)` | フォルダ選択画面を出し、配下のテキストファイルを再帰的に読み込んで `((相対パス . 内容) ...)` を返す(`nil` でキャンセル) |
 | `(export-text filename str)` | 保存先を選んで書き出す |
 | `(haptic kind)` | 触覚。`kind` は `success` `warning` `error` `light` |
 
@@ -393,6 +395,41 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 
 `format` の書式指定: `~A`(値)`~S`(引用付き)`~D`(整数)`~%`(改行)`~~`(`~`)。
 
+### 7.7.1 正規表現
+
+検索・置換に正規表現(ICU/`NSRegularExpression` 準拠)が使えます。位置は
+他の文字列関数と同じく **Character(書記素)単位**で数えます。`^` `$` は
+各行の行頭・行末にもマッチします(`anchorsMatchLines`)。
+
+| 関数 | 説明 |
+|---|---|
+| `(re-match-p pattern str)` | どこかにマッチすれば `t`、しなければ `nil` |
+| `(re-match pattern str)` | 最初にマッチした部分文字列(なければ `nil`) |
+| `(re-search pattern str &opt from)` | 最初のマッチ開始位置。なければ `nil` |
+| `(re-replace pattern template str)` | **文字列**中の全マッチを置換して返す(`$1`…で後方参照) |
+| `(re-matches pattern str)` | マッチした部分文字列をすべてリストで返す(長さ0の空マッチは含めない) |
+| `(re-split pattern str)` | 正規表現で分割してリストに |
+| `(re-replace-all pattern template)` | **編集中の文書**の全マッチを置換。件数を返す |
+
+```lisp
+(re-match-p "TODO|FIXME" "TODO: 買う")     ; => t
+(re-match   "\\d+" "税込1200円")           ; => "1200"
+(re-search  "\\d+" "税込1200円")           ; => 2
+(re-replace "(\\w+)@(\\w+)" "$2の$1" "a@b") ; => "bのa"
+(re-matches "\\d+" "a12b345")              ; => ("12" "345")
+(re-split   "[ ,]+" "赤, 緑,  青")          ; => ("赤" "緑" "青")
+```
+
+> `?` や `*` は「0 個でもよい」ので、`u?` のようなパターンは理屈の上では
+> すべての行にマッチします(空文字列にマッチするため)。grep は
+> `re-matches`(空マッチを除外)で判定するので、`u?` を検索しても
+> **実際に `u` を含む行だけ**がヒットします。
+
+ISLISP の文字列内では `\` を重ねて書きます(例: `\d` は `"\\d"`)。
+標準コマンドの **grep(このファイル)** / **grep(フォルダ再帰)** の検索語、
+および **正規表現で置換** はこれらの関数で動いており、入力した文字列は
+そのまま正規表現として扱われます(`TODO` のような普通の語もそのまま一致します)。
+
 ### 7.8 標準ライブラリの関数
 
 アプリに同梱の標準ライブラリ(stdlib.lsp)は **ISLISP で書かれており**、
@@ -404,6 +441,27 @@ Lisp を知らなくても、以下だけ押さえれば書けます。
 | `(wrap-selection prefix suffix placeholder)` | 選択範囲を prefix/suffix で囲む。選択がなければ placeholder を挿入して選択状態にする |
 | `(insert-at-line-start str)` | 現在行の行頭に文字列を挿入(カーソル位置は維持) |
 | `(md-heading)` `(md-bold)` `(md-italic)` `(md-code)` `(md-link)` | Markdown 記法の挿入コマンド |
+| `(grep-lines text pattern)` | 正規表現 pattern にマッチする行を `((行番号 . 行) ...)` で返す |
+| `(grep-buffer pattern)` | 現在の文書を検索し REPL に出力。件数を返す |
+| `(grep-file-list pattern files)` | `((パス . 内容) ...)` を検索し REPL に出力。件数を返す |
+| `(grep-file pattern path)` | アプリ専用フォルダ内の 1 ファイルを検索し REPL に出力。件数を返す |
+| `(grep-directory pattern dir)` | アプリ専用フォルダ内の dir 配下を**再帰的に**検索。件数を返す(`""` で全体) |
+
+grep は**正規表現**での行検索です(§7.7.1)。マクロメニューの
+「**grep(このファイル)**」「**grep(フォルダ再帰)**」から実行でき、
+結果は REPL コンソールに `パス:行番号: 行` の形式で表示されます。
+
+- **grep(このファイル)**: 正規表現を入力すると、編集中の文書を検索します。
+- **grep(フォルダ再帰)**: 正規表現を入力したあと **フォルダ選択画面**が出ます。
+  選んだフォルダ配下のテキストファイルを再帰的に検索します。
+- **正規表現で置換**: 正規表現と置換文字列(`$1` で後方参照)を入力すると、
+  編集中の文書の全マッチを置換します。
+
+> iPad のセキュリティ上、`file-read` / `file-list` などの `file-*` API は
+> アプリ専用フォルダ(「この iPad 内/ichiseEdit」)の中だけにアクセスできます。
+> Files アプリで開いた iCloud Drive などの実ファイルはそこには無いため、
+> フォルダを横断して検索するときは `pick-folder-files`(ユーザーがフォルダを選択)を
+> 使います。`grep(フォルダ再帰)` コマンドはこの仕組みで動いています。
 
 ```lisp
 ;; 例: 選択範囲を〜〜で囲む取り消し線コマンドを自作

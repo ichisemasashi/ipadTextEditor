@@ -446,6 +446,189 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertTrue(engine.errorMessage?.contains("no-such-function") == true)
     }
 
+    // MARK: - grep(stdlib 実装)
+
+    func testFileDirectoryPredicate() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(file-write "sub/a.txt" "x")"#)
+        repl(engine, #"(file-directory-p "sub")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> t")
+        repl(engine, #"(file-directory-p "sub/a.txt")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+        repl(engine, #"(file-directory-p "nothing")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+    }
+
+    func testGrepLines() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(grep-lines "apple\nbanana\napricot" "ap")"#)
+        XCTAssertEqual(
+            engine.replLines.last?.text,
+            #"=> ((1 . "apple") (3 . "apricot"))"#
+        )
+    }
+
+    func testGrepBuffer() throws {
+        let (engine, _) = try makeEngine(text: "犬が走る\n猫が鳴く\n犬が吠える")
+        repl(engine, #"(grep-buffer "犬")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 2")
+        XCTAssertTrue(engine.replLines.contains { $0.text == "1: 犬が走る" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "3: 犬が吠える" })
+    }
+
+    func testGrepDirectoryRecursive() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(file-write "top.txt" "hello here")"#)
+        repl(engine, #"(file-write "d1/a.txt" "hello\nworld")"#)
+        repl(engine, #"(file-write "d1/d2/b.txt" "say hello")"#)
+        repl(engine, #"(grep-directory "hello" "")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 3")
+        XCTAssertTrue(engine.replLines.contains { $0.text == "d1/d2/b.txt:1: say hello" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "d1/a.txt:1: hello" })
+    }
+
+    func testGrepFileList() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(grep-file-list "TODO" (list (cons "a.txt" "x\nTODO: 買い物") (cons "sub/b.txt" "TODO: 掃除")))"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 2")
+        XCTAssertTrue(engine.replLines.contains { $0.text == "a.txt:2: TODO: 買い物" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "sub/b.txt:1: TODO: 掃除" })
+    }
+
+    func testGrepFolderCommandPicksFolder() throws {
+        let (engine, _) = try makeEngine(text: "")
+        // 検索文字列プロンプトに応答
+        engine.dialogPresenter = { request, completion in
+            if case .prompt = request {
+                completion(.string("TODO"))
+            } else {
+                completion(.nilValue)
+            }
+        }
+        // pick-folder-files をフォルダ選択のシミュレーションで差し替える
+        engine.platformHandler = { request in
+            if case .pickFolderFiles(let completion) = request {
+                completion(.list([
+                    .cons(.string("MyDocs/x.txt"), .string("TODO: 買い物\nメモ")),
+                    .cons(.string("MyDocs/sub/y.txt"), .string("done\nTODO: 掃除")),
+                ]))
+            }
+        }
+        try runAndWait(engine, commandNamed: "grep(フォルダ再帰)")
+        XCTAssertTrue(engine.toastMessage?.contains("2件見つかりました") == true)
+        XCTAssertTrue(engine.replLines.contains { $0.text == "MyDocs/x.txt:1: TODO: 買い物" })
+        XCTAssertTrue(engine.replLines.contains { $0.text == "MyDocs/sub/y.txt:2: TODO: 掃除" })
+    }
+
+    func testGrepFolderCommandCancelled() throws {
+        let (engine, _) = try makeEngine(text: "")
+        engine.dialogPresenter = { request, completion in
+            if case .prompt = request { completion(.string("TODO")) } else { completion(.nilValue) }
+        }
+        engine.platformHandler = { request in
+            if case .pickFolderFiles(let completion) = request { completion(.nilValue) }
+        }
+        try runAndWait(engine, commandNamed: "grep(フォルダ再帰)")
+        XCTAssertTrue(engine.toastMessage?.contains("選択されなかった") == true)
+    }
+
+    // MARK: - 正規表現
+
+    func testRegexMatchP() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-match-p "TODO|FIXME" "これは FIXME です")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> t")
+        repl(engine, #"(re-match-p "^#" "本文")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+        repl(engine, #"(re-match-p "\\d{3}" "電話は120番")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> t")
+    }
+
+    func testRegexMatchAndSearch() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-match "\\d+" "商品は税込1200円")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> "1200""#)
+        // Character 単位のオフセット(日本語混じりでもずれない)
+        repl(engine, #"(re-search "\\d+" "商品は税込1200円")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> 5")
+        repl(engine, #"(re-search "zzz" "見つからない")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+    }
+
+    func testRegexReplaceString() throws {
+        let (engine, _) = try makeEngine(text: "")
+        // 後方参照($1 $2)を使った並べ替え
+        repl(engine, #"(re-replace "(\\w+)@(\\w+)" "$2の$1" "a@b と c@d")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> "bのa と dのc""#)
+    }
+
+    func testRegexSplit() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-split "[ ,]+" "赤, 緑,  青")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ("赤" "緑" "青")"#)
+    }
+
+    func testGrepUsesRegex() throws {
+        let (engine, _) = try makeEngine(text: "")
+        // grep-lines は (grep-lines テキスト 正規表現) の順
+        repl(engine, #"(grep-lines "ok\nTODO: 買う\nFIXME: 直す\nメモ" "TODO|FIXME")"#)
+        XCTAssertEqual(
+            engine.replLines.last?.text,
+            #"=> ((2 . "TODO: 買う") (3 . "FIXME: 直す"))"#
+        )
+    }
+
+    func testRegexReplaceCommand() throws {
+        let (engine, view) = try makeEngine(text: "cat and cat")
+        var prompts = 0
+        engine.dialogPresenter = { request, completion in
+            if case .prompt = request {
+                prompts += 1
+                completion(.string(prompts == 1 ? "cat" : "dog"))
+            } else {
+                completion(.nilValue)
+            }
+        }
+        try runAndWait(engine, commandNamed: "正規表現で置換")
+        XCTAssertEqual(view.text, "dog and dog")
+        XCTAssertTrue(engine.toastMessage?.contains("2件置換") == true)
+    }
+
+    func testRegexInvalidPatternErrors() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-match-p "[" "abc")"#)
+        XCTAssertTrue(engine.replLines.last?.text.contains("正規表現が不正") == true)
+    }
+
+    func testReMatchesSkipsEmpty() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-matches "\\d+" "a12b345")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ("12" "345")"#)
+        // u? は空にもマッチしうるが、実際に文字を拾えた箇所だけ返す
+        repl(engine, #"(re-matches "u?" "oppp")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+        repl(engine, #"(re-matches "u?" "our")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ("u")"#)
+    }
+
+    func testGrepIgnoresEmptyMatchLines() throws {
+        // "u?" で u を含まない行がヒットしない(報告されたバグの回帰テスト)
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(grep-lines "oppp\nunicorn\n- oppp\nблу" "u?")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ((2 . "unicorn"))"#)
+    }
+
+    func testREPLTranscriptAndClear() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, "(+ 1 2)")
+        repl(engine, #"(buffer-name)"#)
+        XCTAssertTrue(engine.replTranscript.contains("=> 3"))
+        XCTAssertTrue(engine.replTranscript.contains("> (+ 1 2)"))
+        engine.clearREPL()
+        XCTAssertTrue(engine.replLines.isEmpty)
+        XCTAssertEqual(engine.replTranscript, "")
+    }
+
     // MARK: - M5: iPadOS 連携
 
     func testSpellCheck() throws {

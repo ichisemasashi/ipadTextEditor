@@ -49,6 +49,80 @@
   (wrap-selection "[" "](url)" "title"))
 
 ;; ------------------------------------------------------------
+;; grep(正規表現による行検索)
+;; ------------------------------------------------------------
+
+;; text の中から正規表現 pattern にマッチする行を ((行番号 . 行) ...) で返す。
+;; pattern はそのまま正規表現として扱う(例: "TODO|FIXME" "^#" "\\d+")。
+;; 通常の単語("犬" など)を渡せばその単語を含む行に一致する。
+;;
+;; マッチ判定は re-matches(空マッチを含まない)で行う。これにより
+;; "u?" のような「0 文字でも成立する」パターンでも、実際に文字を拾えた
+;; 行だけがヒットする(u を含まない行は誤ヒットしない)。
+(defun grep-lines (text pattern)
+  (let ((lines (string-split text "\n"))
+        (n 0)
+        (result nil))
+    (while (consp lines)
+      (setq n (+ n 1))
+      (if (consp (re-matches pattern (car lines)))
+          (setq result (cons (cons n (car lines)) result))
+          nil)
+      (setq lines (cdr lines)))
+    (reverse result)))
+
+;; 現在の文書から query を検索し、ヒット行を REPL に出力する。件数を返す
+(defun grep-buffer (query)
+  (let ((hits (grep-lines (buffer-text) query)))
+    (format t "── grep ~S(~A)──~%" query (buffer-name))
+    (mapc (lambda (hit)
+            (format t "~D: ~A~%" (car hit) (cdr hit)))
+          hits)
+    (length hits)))
+
+;; 1 ファイルから query を検索して REPL に出力する。件数を返す。
+;; 読めないファイル(バイナリ等)は黙ってスキップする
+(defun grep-file (query path)
+  (with-handler
+    (lambda (condition) 0)
+    (let ((hits (grep-lines (file-read path) query)))
+      (mapc (lambda (hit)
+              (format t "~A:~D: ~A~%" path (car hit) (cdr hit)))
+            hits)
+      (length hits))))
+
+;; dir 配下を再帰的に grep する。dir が "" ならアプリ専用フォルダ全体。件数を返す。
+;; 読めないフォルダは黙ってスキップする。
+;; 注意: file-* API はアプリ専用フォルダ(サンドボックス)に限定されるため、
+;; Files で開いた実ファイルは対象外。実ファイルの検索は grep(フォルダ再帰)
+;; コマンド(pick-folder-files でユーザーがフォルダを選択)を使うこと。
+(defun grep-directory (query dir)
+  (let ((total 0)
+        (names (with-handler (lambda (condition) nil) (file-list dir))))
+    (mapc
+      (lambda (name)
+        (let ((path (if (string= dir "") name (string-append dir "/" name))))
+          (if (file-directory-p path)
+              (setq total (+ total (grep-directory query path)))
+              (setq total (+ total (grep-file query path))))))
+      names)
+    total))
+
+;; ((パス . 内容) ...) のリストを grep し、ヒット行を REPL に出力する。件数を返す
+(defun grep-file-list (query files)
+  (let ((total 0))
+    (mapc
+      (lambda (entry)
+        (let ((path (car entry))
+              (hits (grep-lines (cdr entry) query)))
+          (mapc (lambda (hit)
+                  (format t "~A:~D: ~A~%" path (car hit) (cdr hit)))
+                hits)
+          (setq total (+ total (length hits)))))
+      files)
+    total))
+
+;; ------------------------------------------------------------
 ;; 標準コマンド(ハンマーメニューに常に表示される)
 ;;
 ;; Macros フォルダのユーザーマクロで同じ名前のコマンドを定義すると、
@@ -90,6 +164,42 @@
 
 (define-command "共有する"
   (lambda () (share (buffer-text))))
+
+(define-command "grep(このファイル)"
+  (lambda ()
+    (let ((query (prompt "検索する正規表現" "")))
+      (if (and query (not (string= query "")))
+          (message (format nil "~D件見つかりました(REPLに表示)"
+                           (grep-buffer query)))
+          nil))))
+
+(define-command "grep(フォルダ再帰)"
+  (lambda ()
+    (let ((query (prompt "検索する正規表現" "")))
+      (if (and query (not (string= query "")))
+          ;; ユーザーがフォルダを選択(サンドボックスの外の実ファイルを検索するため)。
+          ;; 配下のテキストファイルを再帰的に読み込んで grep する
+          (let ((files (pick-folder-files)))
+            (if files
+                (progn
+                  (format t "── grep ~S(選択フォルダ配下)──~%" query)
+                  (message (format nil "~D件見つかりました(REPLに表示)"
+                                   (grep-file-list query files))))
+                (message "フォルダが選択されなかったか、対象ファイルがありません")))
+          nil))))
+
+;; 正規表現で文書全体を置換する。置換文字列では $1 $2 … で後方参照が使える
+;; (例: パターン "(\\w+)@(\\w+)" 置換 "$2 の $1")
+(define-command "正規表現で置換"
+  (lambda ()
+    (let ((pattern (prompt "検索する正規表現" "")))
+      (if (and pattern (not (string= pattern "")))
+          (let ((replacement (prompt "置換後の文字列($1で後方参照)" "")))
+            (if replacement
+                (message (format nil "~D件置換しました"
+                                 (re-replace-all pattern replacement)))
+                nil))
+          nil))))
 
 ;; テキスト選択中の編集メニュー「マクロ」とハンマーメニューに表示される
 (define-selection-command "大文字にする"

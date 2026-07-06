@@ -191,6 +191,16 @@ final class MacroEngine: ObservableObject {
         }
     }
 
+    /// REPL の履歴をすべて 1 つの文字列にする(コピー用)
+    var replTranscript: String {
+        replLines.map(\.text).joined(separator: "\n")
+    }
+
+    /// REPL の履歴を消去する
+    func clearREPL() {
+        replLines = []
+    }
+
     /// REPL: 式を評価して結果(またはエラー)を履歴に追加する
     func evalREPL(_ source: String, completion: (() -> Void)? = nil) {
         let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -291,7 +301,9 @@ final class MacroEngine: ObservableObject {
         }
         // (format t ...) の出力は REPL コンソールへ
         interpreter.output = { [weak self] text in
-            onMain { self?.replLines.append(REPLLine(kind: .output, text: text)) }
+            // REPL は 1 出力 = 1 行で表示するため、~% による末尾の改行 1 つは取り除く
+            let line = text.hasSuffix("\n") ? String(text.dropLast()) : text
+            onMain { self?.replLines.append(REPLLine(kind: .output, text: line)) }
         }
 
         // コマンド登録(要件 §5.5)。同じ名前は後から定義したものが勝つ
@@ -376,6 +388,7 @@ final class MacroEngine: ObservableObject {
         guard let textView = proxy?.textView,
               var presenter = textView.window?.rootViewController else {
             if case .pickFile(let completion) = request { completion(.nilValue) }
+            if case .pickFolderFiles(let completion) = request { completion(.nilValue) }
             return
         }
         while let presented = presenter.presentedViewController {
@@ -426,14 +439,75 @@ final class MacroEngine: ObservableObject {
             }
             picker.delegate = coordinator
             pickerCoordinator = coordinator
-            presenter.present(picker, animated: true)
+            // prompt ダイアログの直後に開くことがあるため安定表示を待つ
+            presentWhenReady(picker, attemptsLeft: 40, configure: nil) {
+                completion(.nilValue)
+            }
+
+        case .pickFolderFiles(let completion):
+            let picker = UIDocumentPickerViewController(
+                forOpeningContentTypes: [.folder]
+            )
+            let coordinator = DocumentPickerCoordinator { url in
+                guard let url else {
+                    completion(.nilValue)
+                    return
+                }
+                completion(Self.readFolderFiles(url))
+            }
+            picker.delegate = coordinator
+            pickerCoordinator = coordinator
+            presentWhenReady(picker, attemptsLeft: 40, configure: nil) {
+                completion(.nilValue)
+            }
 
         case .exportText(let filename, let text):
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
             try? text.write(to: url, atomically: true, encoding: .utf8)
             let picker = UIDocumentPickerViewController(forExporting: [url])
-            presenter.present(picker, animated: true)
+            presentWhenReady(picker, attemptsLeft: 40, configure: nil) { }
         }
+    }
+
+    /// 選択されたフォルダ配下のテキストファイルを再帰的に読み込み、
+    /// ((相対パス . 内容) ...) の LispValue リストを返す。
+    /// UTF-8 で読めないファイル(バイナリ)と大きすぎるファイルはスキップする。
+    private static func readFolderFiles(_ folder: URL) -> LispValue {
+        let didAccess = folder.startAccessingSecurityScopedResource()
+        defer { if didAccess { folder.stopAccessingSecurityScopedResource() } }
+
+        let fm = FileManager.default
+        let maxFileSize = 5 * 1024 * 1024   // 1 ファイル 5MB まで
+        let maxFileCount = 5000             // 暴走防止の上限
+        let base = folder.standardizedFileURL
+        let basePath = base.path
+        var entries: [LispValue] = []
+
+        guard let enumerator = fm.enumerator(
+            at: base,
+            includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else {
+            return .nilValue
+        }
+
+        for case let fileURL as URL in enumerator {
+            if entries.count >= maxFileCount { break }
+            let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+            guard values?.isRegularFile == true else { continue }
+            if let size = values?.fileSize, size > maxFileSize { continue }
+            guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else { continue }
+
+            // フォルダ名を先頭に付けた相対パス(例: "MyDocs/sub/a.txt")にする
+            let full = fileURL.standardizedFileURL.path
+            var relative = full
+            if full.hasPrefix(basePath + "/") {
+                relative = String(full.dropFirst(basePath.count + 1))
+            }
+            let label = base.lastPathComponent + "/" + relative
+            entries.append(.cons(.string(label), .string(text)))
+        }
+        return .list(entries)
     }
 
     /// 既定のダイアログ実装(UIAlertController)。メインスレッドで呼ばれる
@@ -441,43 +515,77 @@ final class MacroEngine: ObservableObject {
         _ request: MacroDialogRequest,
         _ completion: @escaping (LispValue) -> Void
     ) {
-        guard var presenter = proxy?.textView?.window?.rootViewController else {
-            completion(.nilValue)
-            return
-        }
-        while let presented = presenter.presentedViewController {
-            presenter = presented
-        }
-
+        let alert: UIAlertController
         switch request {
         case .alert(let message):
-            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { _ in
                 completion(.nilValue)
             })
-            presenter.present(alert, animated: true)
         case .confirm(let message):
-            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
                 completion(.nilValue)
             })
             alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { _ in
                 completion(.t)
             })
-            presenter.present(alert, animated: true)
         case .prompt(let message, let defaultText):
-            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-            alert.addTextField { field in
+            let promptAlert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            promptAlert.addTextField { field in
                 field.text = defaultText
             }
-            alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
+            promptAlert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in
                 completion(.nilValue)
             })
-            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { [weak alert] _ in
-                completion(.string(alert?.textFields?.first?.text ?? ""))
+            promptAlert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { [weak promptAlert] _ in
+                completion(.string(promptAlert?.textFields?.first?.text ?? ""))
             })
-            presenter.present(alert, animated: true)
+            alert = promptAlert
         }
+        // 表示に失敗したときは completion を必ず呼ぶ(マクロスレッドがセマフォで
+        // 待っているため、呼ばないとマクロ全体が無反応になる)
+        presentWhenReady(alert, attemptsLeft: 40, configure: nil) {
+            completion(.nilValue)
+        }
+    }
+
+    /// ビューコントローラを最前面に表示する。
+    /// 直前のダイアログの dismiss アニメーション中に present すると UIKit に
+    /// 拒否されるため(prompt とピッカーを連続で使うマクロで発生)、最前面が
+    /// 安定するまで少し待ってから表示する。時間切れなら onFailure を呼ぶ。
+    /// configure は present 直前に最終的な presenter を渡す(ポップオーバー基点設定用)
+    private func presentWhenReady(
+        _ controller: UIViewController,
+        attemptsLeft: Int,
+        configure: ((UIViewController) -> Void)?,
+        onFailure: @escaping () -> Void
+    ) {
+        guard attemptsLeft > 0, var presenter = proxy?.textView?.window?.rootViewController else {
+            onFailure()
+            return
+        }
+        while let presented = presenter.presentedViewController, !presented.isBeingDismissed {
+            presenter = presented
+        }
+        let ready = presenter.presentedViewController == nil
+            && !presenter.isBeingDismissed
+            && !presenter.isBeingPresented
+        guard ready else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                guard let self else {
+                    onFailure()
+                    return
+                }
+                self.presentWhenReady(
+                    controller, attemptsLeft: attemptsLeft - 1,
+                    configure: configure, onFailure: onFailure
+                )
+            }
+            return
+        }
+        configure?(presenter)
+        presenter.present(controller, animated: true)
     }
 
     private func prepareDirectoryWithSamplesIfNeeded() {

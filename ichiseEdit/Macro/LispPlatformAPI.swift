@@ -13,6 +13,9 @@ enum MacroPlatformRequest {
     case openURL(url: URL)
     /// ドキュメントピッカーで読み込み(結果テキスト or nil を返す)
     case pickFile(completion: (LispValue) -> Void)
+    /// フォルダをユーザーが選び、配下のテキストファイルを再帰的に読み込む。
+    /// ((相対パス . 内容) ...) のリスト、キャンセル時は nil を返す
+    case pickFolderFiles(completion: (LispValue) -> Void)
     /// 保存先をユーザーが選んで書き出し
     case exportText(filename: String, text: String)
 }
@@ -163,6 +166,24 @@ enum LispPlatformAPI {
             let started = Date()
             DispatchQueue.main.async {
                 present(.pickFile { value in
+                    response = value
+                    semaphore.signal()
+                })
+            }
+            semaphore.wait()
+            itp.extendDeadline(by: Date().timeIntervalSince(started))
+            return response
+        }))
+
+        globals.define("pick-folder-files", .builtin(LispBuiltin("pick-folder-files") { _, itp in
+            guard !Thread.isMainThread else {
+                throw LispError("pick-folder-files はコマンド実行中にのみ使えます")
+            }
+            let semaphore = DispatchSemaphore(value: 0)
+            var response = LispValue.nilValue
+            let started = Date()
+            DispatchQueue.main.async {
+                present(.pickFolderFiles { value in
                     response = value
                     semaphore.signal()
                 })
