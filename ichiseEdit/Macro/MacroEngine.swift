@@ -191,6 +191,16 @@ final class MacroEngine: ObservableObject {
         }
     }
 
+    /// REPL の履歴をすべて 1 つの文字列にする(コピー用)
+    var replTranscript: String {
+        replLines.map(\.text).joined(separator: "\n")
+    }
+
+    /// REPL の履歴を消去する
+    func clearREPL() {
+        replLines = []
+    }
+
     /// REPL: 式を評価して結果(またはエラー)を履歴に追加する
     func evalREPL(_ source: String, completion: (() -> Void)? = nil) {
         let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)

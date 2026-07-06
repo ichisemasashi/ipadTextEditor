@@ -600,6 +600,35 @@ final class MacroEngineTests: XCTestCase {
         XCTAssertTrue(engine.replLines.last?.text.contains("正規表現が不正") == true)
     }
 
+    func testReMatchesSkipsEmpty() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(re-matches "\\d+" "a12b345")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ("12" "345")"#)
+        // u? は空にもマッチしうるが、実際に文字を拾えた箇所だけ返す
+        repl(engine, #"(re-matches "u?" "oppp")"#)
+        XCTAssertEqual(engine.replLines.last?.text, "=> nil")
+        repl(engine, #"(re-matches "u?" "our")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ("u")"#)
+    }
+
+    func testGrepIgnoresEmptyMatchLines() throws {
+        // "u?" で u を含まない行がヒットしない(報告されたバグの回帰テスト)
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, #"(grep-lines "oppp\nunicorn\n- oppp\nблу" "u?")"#)
+        XCTAssertEqual(engine.replLines.last?.text, #"=> ((2 . "unicorn"))"#)
+    }
+
+    func testREPLTranscriptAndClear() throws {
+        let (engine, _) = try makeEngine(text: "")
+        repl(engine, "(+ 1 2)")
+        repl(engine, #"(buffer-name)"#)
+        XCTAssertTrue(engine.replTranscript.contains("=> 3"))
+        XCTAssertTrue(engine.replTranscript.contains("> (+ 1 2)"))
+        engine.clearREPL()
+        XCTAssertTrue(engine.replLines.isEmpty)
+        XCTAssertEqual(engine.replTranscript, "")
+    }
+
     // MARK: - M5: iPadOS 連携
 
     func testSpellCheck() throws {

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// ISLISP の式を対話的に評価する REPL コンソール(シート表示)。
 struct MacroREPLView: View {
@@ -6,6 +7,7 @@ struct MacroREPLView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var input = ""
+    @State private var didCopy = false
 
     var body: some View {
         NavigationStack {
@@ -13,9 +15,31 @@ struct MacroREPLView: View {
                 .navigationTitle("REPL")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    ToolbarItemGroup(placement: .topBarLeading) {
+                        Button {
+                            UIPasteboard.general.string = engine.replTranscript
+                            didCopy = true
+                        } label: {
+                            Label(didCopy ? "Copied" : "Copy All",
+                                  systemImage: didCopy ? "checkmark" : "doc.on.doc")
+                        }
+                        .disabled(engine.replLines.isEmpty)
+
+                        Button(role: .destructive) {
+                            engine.clearREPL()
+                            didCopy = false
+                        } label: {
+                            Label("Clear", systemImage: "trash")
+                        }
+                        .disabled(engine.replLines.isEmpty)
+                    }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                     }
+                }
+                .onChange(of: engine.replLines.count) { _ in
+                    // 履歴が変わったらコピー済み表示を戻す
+                    didCopy = false
                 }
         }
     }

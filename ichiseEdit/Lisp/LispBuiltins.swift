@@ -530,6 +530,21 @@ enum LispBuiltins {
             pieces.append(ns.substring(from: last))
             return .list(pieces.map { .string($0) })
         }
+        define("re-matches") { args, _ in
+            // マッチした部分文字列をすべて返す。長さ 0 の空マッチは含めない。
+            // (u? のような常に空にマッチしうるパターンでも「実際に文字を
+            //  拾えた箇所」だけを返すので、grep 等で実用的に使える)
+            let (pattern, target) = try twoStrings(args, "re-matches")
+            let regex = try Self.compileRegex(pattern, "re-matches")
+            let ns = target as NSString
+            let full = NSRange(location: 0, length: ns.length)
+            var results: [LispValue] = []
+            regex.enumerateMatches(in: target, range: full) { match, _, _ in
+                guard let match = match, match.range.length > 0 else { return }
+                results.append(.string(ns.substring(with: match.range)))
+            }
+            return .list(results)
+        }
     }
 
     /// 正規表現をコンパイルする。不正なら分かりやすいエラーを投げる

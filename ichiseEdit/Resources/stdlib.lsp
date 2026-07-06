@@ -55,13 +55,17 @@
 ;; text の中から正規表現 pattern にマッチする行を ((行番号 . 行) ...) で返す。
 ;; pattern はそのまま正規表現として扱う(例: "TODO|FIXME" "^#" "\\d+")。
 ;; 通常の単語("犬" など)を渡せばその単語を含む行に一致する。
+;;
+;; マッチ判定は re-matches(空マッチを含まない)で行う。これにより
+;; "u?" のような「0 文字でも成立する」パターンでも、実際に文字を拾えた
+;; 行だけがヒットする(u を含まない行は誤ヒットしない)。
 (defun grep-lines (text pattern)
   (let ((lines (string-split text "\n"))
         (n 0)
         (result nil))
     (while (consp lines)
       (setq n (+ n 1))
-      (if (re-match-p pattern (car lines))
+      (if (consp (re-matches pattern (car lines)))
           (setq result (cons (cons n (car lines)) result))
           nil)
       (setq lines (cdr lines)))
